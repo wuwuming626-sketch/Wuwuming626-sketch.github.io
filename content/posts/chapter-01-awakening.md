@@ -9,7 +9,6 @@ title = 'Chapter 01 Awakening'
 ---
 title: "第一章：觉醒 - 土豆教主的诞生"
 date: 2026-04-10T08:00:00+08:00
-draft: false
 ---
 
 ## 平凡的开始
