@@ -1,0 +1,50 @@
+baseURL = 'https://tudujiaozhu.github.io/'
+languageCode = 'zh-cn'
+title = '土豆教主的逆袭之路'
+theme = 'PaperMod'
+
+[params]
+ShowBreadCrumbs = true
+ShowPostNavLinks = true
+ShowCodeCopyButtons = true
+ShowReadingTime = true
+ShowShareButtons = false
+ShowToc = false
+defaultTheme = "auto"
+
+[params.homeInfoParams]
+Title = "欢迎来到土豆教主的逆袭之路"
+Content = """
+这里记录着一个普通土豆教主的打怪升级历程
+
+📚 网站功能：
+- [连载小说式的开发日记](/posts/)
+- [技术学习笔记](/tech-notes/)
+- [项目实战经验](/projects/)
+- [踩坑与解决方案](/solutions/)
+"""
+
+[[menu.main]]
+name = "首页"
+url = "/"
+weight = 1
+
+[[menu.main]]
+name = "开发日记"
+url = "/posts/"
+weight = 2
+
+[[menu.main]]
+name = "技术笔记"
+url = "/tech-notes/"
+weight = 3
+
+[[menu.main]]
+name = "项目实战"
+url = "/projects/"
+weight = 4
+
+[[menu.main]]
+name = "踩坑记录"
+url = "/solutions/"
+weight = 5
