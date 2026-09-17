@@ -1,0 +1,19 @@
+{{- /* 搜索索引（覆盖主题默认实现）
+       主题只输出 title / permalink / summary / content。
+       中文正文里常见「U 盘」这类拉丁字母与汉字间带空格的写法，
+       而搜索时用户通常输入「U盘」，Fuse 按连续字符匹配就会漏掉，
+       因此额外输出一份去掉所有空白字符的 compact 字段。 */ -}}
+{{- $index := slice -}}
+{{- range site.RegularPages -}}
+    {{- if and (not .Params.searchHidden) (ne .Layout `archives`) (ne .Layout `search`) -}}
+        {{- $plain := .Plain -}}
+        {{- $index = $index | append (dict
+            "title" .Title
+            "permalink" .Permalink
+            "summary" .Summary
+            "content" $plain
+            "compact" (replaceRE `\s+` `` $plain)
+        ) -}}
+    {{- end -}}
+{{- end -}}
+{{- $index | jsonify -}}

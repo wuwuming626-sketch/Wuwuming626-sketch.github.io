@@ -76,6 +76,20 @@ name = "归档"
 url = "/archives/"
 weight = 7
 
+# 搜索依赖首页的 index.json：不显式声明 JSON，Hugo 不会生成该文件，
+# 搜索就会去读旧产物，导致搜不到新文章
+[outputs]
+home = ['HTML', 'RSS', 'JSON']
+
+# 中文检索调优：忽略位置、放宽阈值，短词也能命中
+[params.fuseOpts]
+iscasesensitive = false
+threshold = 0.4
+ignorelocation = true
+minmatchcharlength = 1
+limit = 20
+keys = ['title', 'permalink', 'summary', 'content', 'compact']
+
 [markup.highlight]
 # PaperMod 的语法配色靠 class 生效，用内联样式的话深色模式会串色
 noClasses = false
