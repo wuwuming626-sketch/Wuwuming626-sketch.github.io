@@ -1,16 +1,33 @@
 baseURL = 'https://wuwuming626-sketch.github.io/'
-languageCode = 'zh-cn'
 title = '土豆教主的逆袭之路'
+languageCode = 'zh-CN'
+# 内容语言用 zh，才能命中主题内置的 i18n/zh.yaml（目录、分钟、年份格式等）
+defaultContentLanguage = 'zh'
+# 中文按下字计数：摘要截断、字数统计、阅读时长才算得对
+hasCJKLanguage = true
+summaryLength = 60
+enableRobotsTXT = true
 theme = 'PaperMod'
 
 [params]
+description = '土豆教主的个人技术博客：记录嵌入式固件与产测开发中的项目实战、调试笔记和踩坑复盘。'
+author = '土豆教主'
+keywords = ['嵌入式', '固件开发', 'ATE 产测', '驱动调试', '技术笔记', '踩坑复盘']
+# 首页混排全部栏目，否则只会显示文章数最多的那一个栏目
+mainSections = ['projects', 'tech-notes', 'solutions', 'posts']
 ShowBreadCrumbs = true
 ShowPostNavLinks = true
 ShowCodeCopyButtons = true
 ShowReadingTime = true
+ShowWordCount = true
 ShowShareButtons = false
-ShowToc = false
+# 文章都比较长，打开目录便于跳转
+ShowToc = true
+ShowTocOpen = false
 defaultTheme = "auto"
+
+[params.footer]
+text = '记录嵌入式固件开发中的项目实战与踩坑复盘'
 
 [params.homeInfoParams]
 Title = "欢迎来到土豆教主的逆袭之路"
@@ -48,3 +65,17 @@ weight = 4
 name = "踩坑记录"
 url = "/solutions/"
 weight = 5
+
+[[menu.main]]
+name = "搜索"
+url = "/search/"
+weight = 6
+
+[[menu.main]]
+name = "归档"
+url = "/archives/"
+weight = 7
+
+[markup.highlight]
+# PaperMod 的语法配色靠 class 生效，用内联样式的话深色模式会串色
+noClasses = false

@@ -1,0 +1,153 @@
+/* ==========================================================================
+   土豆教主的逆袭之路 —— 站点自定义样式
+   PaperMod 是 git submodule，不要改主题文件；Hugo 会把 assets/css/extended/*.css
+   拼在主题样式之后加载，所以这里可直接覆盖。
+   ========================================================================== */
+
+/* ---------- 1. 字体：中文优先的字体栈 ---------- */
+:root {
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC",
+        "WenQuanYi Micro Hei", sans-serif;
+    --font-mono: "JetBrains Mono", "Cascadia Mono", "Cascadia Code", "Fira Code",
+        Consolas, "Source Code Pro", Menlo, Monaco, "Courier New", monospace;
+    /* 正文略微放宽，给技术文里的表格和代码更多横向空间 */
+    --main-width: 780px;
+    --content-gap: 22px;
+}
+
+body {
+    font-family: var(--font-sans);
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+code,
+kbd,
+pre,
+samp,
+.highlight,
+.chroma {
+    font-family: var(--font-mono);
+}
+
+/* 中文正文排版微调 */
+.md-content p {
+    letter-spacing: 0.01em;
+}
+
+/* ---------- 2. 标题层级：长文更好读，锚点跳转不被顶栏遮住 ---------- */
+.md-content h1,
+.md-content h2,
+.md-content h3,
+.md-content h4,
+.md-content h5,
+.md-content h6 {
+    scroll-margin-top: calc(var(--header-height) + 16px);
+}
+
+.md-content h2 {
+    margin: 44px 0 18px;
+    padding-bottom: 0.35em;
+    font-size: 26px;
+    border-bottom: 1px solid var(--border);
+}
+
+.md-content h3 {
+    margin: 30px 0 14px;
+    font-size: 21px;
+}
+
+.md-content h4 {
+    font-size: 18px;
+}
+
+/* 中文标题普遍偏长，主题默认的 40px 会折成三行 */
+.post-title {
+    font-size: 30px;
+    line-height: 1.35;
+}
+
+/* ---------- 3. 表格：技术文表格多，补上边框、留白与表头底色 ---------- */
+.md-content table {
+    display: table;
+    width: 100%;
+    font-size: 0.92em;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.md-content table th,
+.md-content table:not(.highlighttable, .highlight table) td {
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+    word-break: break-word;
+}
+
+.md-content table th {
+    background: var(--code-bg);
+    font-weight: 600;
+}
+
+/* 单元格里的长路径/长函数名不撑破版面 */
+.md-content table td code {
+    overflow-wrap: anywhere;
+}
+
+/* ---------- 4. 代码块与引用块 ---------- */
+.md-content pre code {
+    padding: 12px 14px;
+    font-size: 0.8em;
+    line-height: 1.65;
+}
+
+.md-content .highlight:not(table) {
+    border: 1px solid var(--border);
+}
+
+.md-content blockquote {
+    margin: 1.2rem 0;
+    padding: 0.7rem 1rem;
+    background: var(--code-bg);
+    border-inline-start: 0.25rem solid var(--primary);
+    border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.md-content blockquote p:last-child {
+    margin-bottom: 0;
+}
+
+/* ---------- 5. 栏目描述与列表 ---------- */
+.post-description {
+    color: var(--secondary);
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+.entry-content {
+    line-height: 1.7;
+}
+
+/* ---------- 6. 窄屏 ---------- */
+@media (max-width: 700px) {
+    .post-title {
+        font-size: 24px;
+    }
+
+    .md-content h2 {
+        font-size: 22px;
+    }
+
+    .md-content h3 {
+        font-size: 19px;
+    }
+
+    /* 手机上表格改为可横向滚动，避免撑破页面 */
+    .md-content table {
+        display: block;
+        overflow-x: auto;
+        font-size: 0.86em;
+    }
+}
