@@ -5,7 +5,7 @@ draft = false
 weight = 6
 +++
 
-我在 V60E 上排查已产测设备重烧 all-app.bin 后又进 ATE 的问题，发现 clean meta 顺着打包链路写穿了 ctrl 分区，把 ATE_DONE 位打回 0。下面是完整的定位与验证记录。
+一台已经产测通过的 V60E，重烧一次 all-app.bin 之后，居然又乖乖回到了 ATE 模式。翻来查去，元凶是 clean meta——它顺着打包链路一路写穿了 ctrl 分区，把 ATE_DONE 位硬生生打回了 0。下面是这桩「产测记忆错乱」的完整定位与验证过程。
 
 > 范围：BK7258 话机 SKU（`sdk-repo` / `voip-project`）打包链路与运行态产测标志
 > 机型：V60E / V60P-V2（真机验证），H2E / H2U 等（硬件版本识别）

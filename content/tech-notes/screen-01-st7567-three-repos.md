@@ -5,7 +5,7 @@ draft = false
 weight = 1
 +++
 
-MB12-V2 的 ST7567 是 128×48 SPI 单色 COG 屏，背光走 PWM4 → GPIO24。产品此前按「无屏 / 假屏」路径编译，显示链路只有 ST567 与 ST7789P3 两条分支。这次把 ST7567 接成第三种 mono COG 面板。下面把整条链路和踩过的坑记一遍。
+MB12-V2 上这块 ST7567（128×48 SPI 单色 COG，背光走 PWM4 → GPIO24）原本连名字都排不上号：产品一直按「无屏 / 假屏」编译，显示链路里只有 ST567 和 ST7789P3 两条分支。这一次，它作为第三种 mono COG 面板硬是被塞了进来，改动一口气横跨三个仓库。
 
 > 覆盖三个仓库：`bk_avdk_smp`（`fc3f8e6e318c9beabc538b3b1d77bc131ebc1cf3` / `I8d16c16661debd797654276d019c7ea317485961`）、xapp（`a1ea773037b8e7b0f5a8d3174111e535479cef42` / `Icf8c7bd5770fc5b5f777cd30f871fd2a52634a1d`）、xGui（`275ee548a1eb290f3f75b0693f2964547d4ce2eb` / `I7f870f2cd04d769634e9b998d6e614d77b45f00c`）。
 
