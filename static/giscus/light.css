@@ -61,11 +61,11 @@ html body .gsc-main {
         "WenQuanYi Micro Hei", sans-serif;
 }
 
-/* 字号：站点正文是 18px / 1.75，评论作为次级内容取 16px / 1.7（原来是 14px / 1.43） */
+/* 字号：与站点正文完全一致（原来是 14px / 1.43） */
 main .gsc-comment,
 main .gsc-comment-box {
-    font-size: 16px;
-    line-height: 1.7;
+    font-size: 18px;
+    line-height: 1.75;
 }
 
 main .gsc-comment-box-markdown-hint {
