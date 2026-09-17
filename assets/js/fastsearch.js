@@ -198,11 +198,13 @@ function buildResultItem(result, query) {
     const section = item.section
         ? '<footer class="entry-footer"><span class="entry-section">' + escapeHtml(item.section) + '</span></footer>'
         : '';
+    // 带上关键词，文章页据此滚动到正文中的命中位置并高亮
+    const href = item.permalink + '#hl=' + encodeURIComponent(query);
     return '<li class="post-entry">'
         + '<header class="entry-header">' + title + '</header>'
         + (snippet ? '<div class="entry-content"><p>' + snippet + '</p></div>' : '')
         + section
-        + '<a class="entry-link" href="' + escapeHtml(item.permalink)
+        + '<a class="entry-link" href="' + escapeHtml(href)
         + '" aria-label="' + escapeHtml(item.title) + '"></a>'
         + '</li>';
 }

@@ -186,7 +186,31 @@ html[data-theme="dark"] .searchResults mark {
     background: none;
 }
 
-/* ---------- 7. 窄屏 ---------- */
+/* ---------- 7. 文章页：从搜索结果跳转过来时的高亮 ---------- */
+.md-content mark.search-hit {
+    padding: 0 2px;
+    border-radius: 2px;
+    background: rgba(255, 196, 0, 0.55);
+    color: var(--primary);
+    animation: search-hit-flash 1.2s ease-out 1;
+}
+
+@keyframes search-hit-flash {
+    from {
+        background: rgba(255, 196, 0, 0.95);
+    }
+
+    to {
+        background: rgba(255, 196, 0, 0.55);
+    }
+}
+
+html[data-theme="dark"] .md-content mark.search-hit {
+    background: rgba(255, 196, 0, 0.7);
+    color: #fff;
+}
+
+/* ---------- 8. 窄屏 ---------- */
 @media (max-width: 700px) {
     .post-title {
         font-size: 24px;

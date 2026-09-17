@@ -1,0 +1,9 @@
+{{- /* Footer custom content area start */ -}}
+{{- /* 文章页：从搜索结果跳转过来时定位并高亮命中位置 */ -}}
+{{- if eq .Kind "page" -}}
+{{- with resources.Get "js/search-jump.js" -}}
+{{- $js := . | minify | fingerprint -}}
+<script defer src="{{ $js.RelPermalink }}" integrity="{{ $js.Data.Integrity }}"></script>
+{{- end -}}
+{{- end -}}
+{{- /* Footer custom content area end */ -}}
