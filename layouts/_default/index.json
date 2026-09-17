@@ -2,7 +2,13 @@
        主题只输出 title / permalink / summary / content。
        中文正文里常见「U 盘」这类拉丁字母与汉字间带空格的写法，
        而搜索时用户通常输入「U盘」，Fuse 按连续字符匹配就会漏掉，
-       因此额外输出一份去掉所有空白字符的 compact 字段。 */ -}}
+       因此额外输出一份去掉所有空白字符的 compact 字段；
+       section 用于在搜索结果里标注所属栏目。 */ -}}
+{{- $sectionNames := dict
+    "projects" "项目实战"
+    "tech-notes" "技术笔记"
+    "solutions" "踩坑记录"
+    "posts" "开发日记" -}}
 {{- $index := slice -}}
 {{- range site.RegularPages -}}
     {{- if and (not .Params.searchHidden) (ne .Layout `archives`) (ne .Layout `search`) -}}
@@ -13,6 +19,7 @@
             "summary" .Summary
             "content" $plain
             "compact" (replaceRE `\s+` `` $plain)
+            "section" (index $sectionNames .Section | default .Section)
         ) -}}
     {{- end -}}
 {{- end -}}

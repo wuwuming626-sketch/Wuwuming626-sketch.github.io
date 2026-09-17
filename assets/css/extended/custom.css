@@ -130,7 +130,63 @@ samp,
     line-height: 1.7;
 }
 
-/* ---------- 6. 窄屏 ---------- */
+/* ---------- 6. 站内搜索：命中片段、命中高亮与栏目标签 ---------- */
+.searchResults li {
+    padding: 14px 16px;
+}
+
+.searchResults .entry-header {
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.searchResults .entry-content {
+    /* 片段较长，比列表页多给一行 */
+    -webkit-line-clamp: 3;
+    margin: 6px 0;
+}
+
+.searchResults .entry-content p {
+    margin: 0;
+}
+
+.searchResults .entry-footer {
+    margin-top: 6px;
+}
+
+.searchResults .entry-section {
+    display: inline-block;
+    padding: 1px 9px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--code-bg);
+    font-size: 12px;
+}
+
+.searchResults mark {
+    padding: 0 1px;
+    border-radius: 2px;
+    background: rgba(255, 196, 0, 0.28);
+    color: var(--primary);
+}
+
+/* 深色模式下同样底色偏暗，加浓一点保证可读 */
+html[data-theme="dark"] .searchResults mark {
+    background: rgba(255, 196, 0, 0.45);
+    color: #fff;
+}
+
+.searchResults .search-empty {
+    padding: 10px;
+    color: var(--secondary);
+    font-size: 14px;
+    list-style: none;
+    border: none;
+    background: none;
+}
+
+/* ---------- 7. 窄屏 ---------- */
 @media (max-width: 700px) {
     .post-title {
         font-size: 24px;
