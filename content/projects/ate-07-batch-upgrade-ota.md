@@ -5,13 +5,13 @@ draft = false
 weight = 7
 +++
 
-我在 qemu_voip（H2E / H2U-V3）上把「上位机下发 update、FTP 拉包」的产测批量升级链路走了一遍，AP 写 CTRL 凭证、Post 下载并刷写。下面把整条链路和踩过的坑记一遍。
+我在 voip-project（H2E / H2U-V3）上把「上位机下发 update、FTP 拉包」的产测批量升级链路走了一遍，AP 写 CTRL 凭证、Post 下载并刷写。下面把整条链路和踩过的坑记一遍。
 
 ## 概述
 
 ### 背景
 
-`qemu_voip` 工程（机型 H2E / H2U-V3）原先已支持网页 OTA：用户在 Web 上传 `.z` 升级包，AP 阶段 1 把参数写入 CTRL 分区后重启进 Post，由 Post 完成阶段 2 的 Flash 写入。
+`voip-project` 工程（机型 H2E / H2U-V3）原先已支持网页 OTA：用户在 Web 上传 `.z` 升级包，AP 阶段 1 把参数写入 CTRL 分区后重启进 Post，由 Post 完成阶段 2 的 Flash 写入。
 
 产测（ATE）场景下，设备已能通过网口与 ATE 上位机（工装 PC）按工装协议交互。为避免人工插 U 盘或访问网页，需要让上位机直接下发升级指令，设备从指定 FTP 服务器下载升级包并完成一次等效于网页升级的 OTA。
 

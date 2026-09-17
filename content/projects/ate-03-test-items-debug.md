@@ -12,12 +12,12 @@ weight = 3
 
 ## 概述
 
-本阶段的 ATE 工作集中在 BK7258（`bk_avdk_smp` 仓库）上，涉及产品形态包括 i12、MB12 / MB12-V2、H2E、V50E、V60E，分支主要为 `0901_1748`、`0611`。工作内容可归为四类：
+本阶段的 ATE 工作集中在 BK7258（`sdk-repo` 仓库）上，涉及产品形态包括 i12、MB12 / MB12-V2、H2E、V50E、V60E，分支主要为 `0901_1748`、`0611`。工作内容可归为四类：
 
 1. **音频类测试项落地**：语音回环（Voice Echo / Loopback）与 Tone 音，三机型共用同一套底层音频引擎，差异集中在路由与音量上限。
 2. **产品差异化补测项**：MB12 的手柄回环通道（片外 codec I2S 环）、IR-CUT 滤光片、LED 告警灯与 PWM 灯、Active URI 键。
 3. **单机 ATE 交互闭环**：预选界面 → 单机菜单 → 确认进详情 / 退回预选，以及退出与确认键的补齐。
-4. **平台解耦与清理**：USB 存储测试的跨平台移植参考（不依赖 xapp 预编译库），以及开发期调试旁路代码的删除。
+4. **平台解耦与清理**：USB 存储测试的跨平台移植参考（不依赖 legacy-app 预编译库），以及开发期调试旁路代码的删除。
 
 整体架构分三层：
 
@@ -34,7 +34,7 @@ weight = 3
   └─ Tone 音：bk_ate_tone.c（定点正弦波 / 粉噪 → spk）
 ```
 
-主要源码位置（相对 `bk_avdk_smp/`）：
+主要源码位置（相对 `sdk-repo/`）：
 
 | 文件 | 职责 |
 |------|------|
@@ -198,7 +198,7 @@ hook 事件语义统一：`hook_off`（挂机/压簧）→ 手柄路由；`hook_
 MB12-V2 的告警/状态灯并非全是普通 GPIO，部分走 PWM；`CONFIG_BK_ATE_HEAT` 打开时 LED 测项需与加热脚**同进同出**。该测项跨两仓协作：
 
 ```text
-xGui tools/gpio_conf/mb12-v2/gpio.conf  →  打包到 /etc/gpio.conf
+gui-repo tools/gpio_conf/mb12-v2/gpio.conf  →  打包到 /etc/gpio.conf
 smp bk_ate_led.c
   load_targets_from_led_conf()   → GPIO / dual / HC595
   load_targets_from_gpio_conf()  → OUTPUT_GPIO* | OUTPUT_PWM*
@@ -239,7 +239,7 @@ HTTP POST key=... → key_token_to_ircut_state
 
 ### USB 存储测试（跨平台移植参考）
 
-该测试项在原方案中实现于 xapp 侧（`fv_app/x_app/ate/src/ateTestUsb.c`），通过回调注册（`ateUsbWriteCbRegister` / `ateUsbReadCbRegister`）由平台预编译库 `libplatform_ate.so` 调用。对 ATE 与 xapp 解耦的平台（如 BK），建议在 ATE 模块内自行实现等价的写/读函数，不链接 xapp：
+该测试项在原方案中实现于 legacy-app 侧（`legacy-repo/legacy-app/ate/src/ateTestUsb.c`），通过回调注册（`ateUsbWriteCbRegister` / `ateUsbReadCbRegister`）由平台预编译库 `libplatform_ate.so` 调用。对 ATE 与 legacy-app 解耦的平台（如 BK），建议在 ATE 模块内自行实现等价的写/读函数，不链接 legacy-app：
 
 ```c
 /* 返回值约定：0 = OK/成功，非 0 = ERROR/失败 */
@@ -302,9 +302,9 @@ void usbTestStart(void)
 编译命令示例（V60E / H2E）：
 
 ```text
-make clean && ./projects/qemu_voip/scripts/voip_sdkconfig_target.sh board && \
-  make bk7258 PROJECT=qemu_voip PRODUCT=H2E
-make clean && make bk7258 PROJECT=qemu_voip PRODUCT=V60E
+make clean && ./projects/voip-project/scripts/voip_sdkconfig_target.sh board && \
+  make bk7258 PROJECT=voip-project PRODUCT=H2E
+make clean && make bk7258 PROJECT=voip-project PRODUCT=V60E
 ```
 
 ## 调试过程记录
@@ -373,9 +373,9 @@ make clean && make bk7258 PROJECT=qemu_voip PRODUCT=V60E
 ### 移植与构建过程问题
 
 - **git 推送/合并**：ATE 相关代码需从另一内网 Git 仓库合并到当前主分支，流程为添加远程（示例地址 `git@git.example.com:team/BK7258_ATE.git`）、`git fetch <branch>`、`git checkout -b ate-merge <remote>/<branch>`、`git rebase master`。
-- **rebase 冲突**：`projects/qemu_voip/ap/CMakeLists.txt` 双方各自新增 include 路径 → 保留两者；`projects/qemu_voip/port/xapp_stub/dmdev/src/input_keypad.c` 按键处理实现不同 → 保留 ATE 分支的调试打印版本。
+- **rebase 冲突**：`projects/voip-project/ap/CMakeLists.txt` 双方各自新增 include 路径 → 保留两者；`projects/voip-project/port/legacy-app_stub/dmdev/src/input_keypad.c` 按键处理实现不同 → 保留 ATE 分支的调试打印版本。
 - **编译错误**：`COL_NUM` 未随配置结构改造，改为 `s_cfg.col_num` 后编译通过，并 `git commit --amend --no-edit` 并入前一提交。
-- **分区不足**：编译报分区不够，调整 `projects/qemu_voip/partitions/bk7258` 下 `ota`（4416k）与 `userdata`（2024k）大小。
+- **分区不足**：编译报分区不够，调整 `projects/voip-project/partitions/bk7258` 下 `ota`（4416k）与 `userdata`（2024k）大小。
 - **QEMU 验证**：使用 `qemu-system-arm -M bk7258` 加载 `app.elf` 与 `qsim flash`/`qspi1` 镜像，`-serial mon:stdio -vnc :0` 观察串口与屏幕。
 
 ## 结论、注意事项与遗留问题
@@ -402,7 +402,7 @@ make clean && make bk7258 PROJECT=qemu_voip PRODUCT=V60E
 
 - `test_video_preview` 目前仅返回 success 占位，真实视频预览能力未实现。
 - USB 存储测试在 BK 侧为移植参考方案，检查清单（独立实现 Write/Read、节点名适配、vfat 支持等）尚未逐项确认落地。
-- 原 xapp USB 实现的 7 项已知缺陷（节点/分区不一致、失败未卸载、`opendir` 未判空、分区选取不确定、依赖 `system()` 工具、依赖录音目录、本地 UI 可能重复触发）需在移植时规避。
+- 原 legacy-app USB 实现的 7 项已知缺陷（节点/分区不一致、失败未卸载、`opendir` 未判空、分区选取不确定、依赖 `system()` 工具、依赖录音目录、本地 UI 可能重复触发）需在移植时规避。
 - H2E 单机回环/Tone 无 pass/fail 键，只能人工听音后用退出键结束，结果不落库。
 - 回环衰减（`>>1`）为硬编码常量，未做可配置；不同硬件耦合强度是否需要分档未验证。
 

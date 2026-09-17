@@ -5,7 +5,7 @@ draft = false
 weight = 1
 +++
 
-我在整理 BK7258 单机产测记录时，印象最深的是小屏机型进单机 ATE 主菜单连按三次 Down 就触发 UsageFault，崩溃线程是 lvgl；同期 V50E 的版本检查硬件版本号（T126155）也不通过。下面把两条单机路径和 vcore 参考实现完整记一遍。
+我在整理 BK7258 单机产测记录时，印象最深的是小屏机型进单机 ATE 主菜单连按三次 Down 就触发 UsageFault，崩溃线程是 lvgl；同期 V50E 的版本检查硬件版本号（问题单 #1）也不通过。下面把两条单机路径和 vcore 参考实现完整记一遍。
 
 ## 概述
 
@@ -14,12 +14,12 @@ weight = 1
 | 路径 | 载体 | 关键开关 / 入口 | 代表机型 |
 |------|------|-----------------|----------|
 | 联机 ATE | 工装 TCP + DHCP Option 43（`Vendor_ATE=`） | 与单机路径互斥的 boot 标志 | V50E/V60E/H2E |
-| 有屏单机 ATE | LVGL 菜单（不依赖 xapp/xui 绘制） | `CONFIG_BK_ATE_STANDALONE_UI`（+ `DIRECT_BOOT`） | V50E/V60E |
+| 有屏单机 ATE | LVGL 菜单（不依赖 legacy-app/xui 绘制） | `CONFIG_BK_ATE_STANDALONE_UI`（+ `DIRECT_BOOT`） | V50E/V60E |
 | 无屏单机 ATE | 串口日志 + LED 反馈的 headless 菜单 | `CONFIG_BK_ATE_STANDALONE_HEADLESS` | H2E |
 
 共同设计约束：
 
-- **组件独立性**：ATE 侧不引用 `xapp` / `xui` / `qemu_voip` 的接口（含 `hardware_ver.h`、`x_adc_*`），需要的能力在 ATE 内部自建。
+- **组件独立性**：ATE 侧不引用 `legacy-app` / `xui` / `voip-project` 的接口（含 `hardware_ver.h`、`x_adc_*`），需要的能力在 ATE 内部自建。
 - **与工厂路径互斥**：单机菜单与 opt43 联网路径由 boot 标志二选一，避免抢矩阵键服务。
 - **共用底层、分离编排**：LED GPIO 映射、hook 轮询、音频（回环/Tone/老化）等底层模块与联机 ATE 同源；单机的测项流程与灯序编排独立实现。
 - **零硬编码倾向**：菜单按键尽量经 `keymaps.txt` 逻辑键值反查矩阵码，机型差异走 Kconfig/defconfig。
@@ -95,7 +95,7 @@ flowchart TB
 1. **状态机与按键语义在 vcore**：进入/退出测试、自动换屏线程、按键分发、结果回传集中在 `ateTestProcess.c` 的 `lcdTestStart` / `lcdTestFinished` / `lcdTestKeyProcess`。
 2. **「画什么屏、调多少背光」在产品回调**：经 `ateCallback.c` 注册的函数指针转发。
 3. **联机与单机共用同一套 vcore 逻辑**，差别只在**谁触发** `testRequestReceived()`。
-4. `xapp/ate/src/ateTestLcd.c` 只是产品层的一种实现，新产品替换绘图/背光 API 即可，**保留语义与按键/自动线程的配合关系**。
+4. `legacy-app/ate/src/ateTestLcd.c` 只是产品层的一种实现，新产品替换绘图/背光 API 即可，**保留语义与按键/自动线程的配合关系**。
 
 ---
 
@@ -164,7 +164,7 @@ DIRECT_BOOT 开启时的启动行为：`boot_standalone_ate_ui=1` → 跳过音�
 - 与联机 `test_led` 的差异：联机由**定时器**每 400ms 自动闪 `led.conf` 中**所有** `LED_GPIO`，`#`/`*` 回 pass/fail；单机 headless 只按名称控制 `POWER_LED + MUTE_LED`、按键驱动。**底层 GPIO 实现同源**（共用 `load_targets_from_led_conf()`、`ate_gpio_level()`、`/etc/led.conf`；双色灯 `pin_a`=红、`pin_b`=绿语义一致），但灯效编排是两套逻辑（有意为之：联机自动闪 + 工装确认，单机无屏需人工逐步看灯）。
 - H2E 典型 `led.conf`：`POWER_LED dual=1 a=25 b=24`（双色），`MUTE_LED dual=0 a=50`（单色）。
 
-### 音频类测项（复用联机栈，不依赖 xapp）
+### 音频类测项（复用联机栈，不依赖 legacy-app）
 
 - **语音回环（3）**：复用 `bk_ate_ip_call` + `bk_ate_voice_echo`（与有屏单机 Loopback 同源）。默认免提路由，进入后约 `CONFIG_BK_ATE_IP_CALL_DELAY_MS`（2000ms）起播防啸叫；音量 +/- 调 DAC gain（0~63）；插簧 `hook_off` 切手柄、`hook_on` 回免提；免提键（keyval 20）亦可切换。
 - **Tone（4）**：复用 `bk_ate_tone`，立即起播 600Hz 正弦（fs 16000Hz），路由/音量/退出策略与回环一致。
@@ -241,7 +241,7 @@ taskDelay(gLoopInterval * (sysClkRateGet() / 2));   // LCD: gLoopInterval = 2
 - 两个同名文件语义不同：
   - `/resource/etc/default/mmiset/version/version.txt`：属于 frogfs **只读**资源，构建时生成，只有 `softwareVersion=`，`hardwareVersion=` 默认空。
   - `/userdata/etc/default/mmiset/version/version.txt`：运行时可写，历史上由产品侧 `hardware_ver_init(adc_channel)` 在 `x_adc_read → x_adc_to_voltage → hw_voltage_to_bom → g_hw_bom_map[bom].hw_ver → update_version_file()` 后写入（文件不存在则新建只写 `hardwareVersion=V2.0`；存在则逐行扫描替换该行，无该行则末尾追加，最后整体 `"w"` 回写）。
-- **ATE 侧改造**：不再读 `version.txt` 的 `hardwareVersion=`，而是自身走 SDK ADC driver（`bk_adc_acquire/init/config/start/read/stop/deinit/release` + `bk_adc_data_calculate()` 转 mV），并在 ATE 内部维护 ADC 通道（H2E 为 ADC15 / GPIO13）、BOM 阈值与映射表，从而不引用 `hardware_ver.h` / `x_adc_read` / `x_adc_to_voltage` 与 `qemu_voip` 侧 include 路径。
+- **ATE 侧改造**：不再读 `version.txt` 的 `hardwareVersion=`，而是自身走 SDK ADC driver（`bk_adc_acquire/init/config/start/read/stop/deinit/release` + `bk_adc_data_calculate()` 转 mV），并在 ATE 内部维护 ADC 通道（H2E 为 ADC15 / GPIO13）、BOM 阈值与映射表，从而不引用 `hardware_ver.h` / `x_adc_read` / `x_adc_to_voltage` 与 `voip-project` 侧 include 路径。
 
 ---
 
@@ -273,13 +273,13 @@ taskDelay(gLoopInterval * (sysClkRateGet() / 2));   // LCD: gLoopInterval = 2
 
 **风险与回退**：改动仅限单函数，属低风险；中风险为父子层级约束可能需切递归版本，以及「回菜单先 `scroll_to_y(0)` 再定位当前项」的体感需实机确认。回退只需还原 `menu_scroll_sel_into_view()`，再进入第二轮排查（样式刷新与小屏 `pad_row/pad_ver/min_height` 布局参数、addr2line）。当前缺口是缺少对应固件的 `app.elf`，无法把 `0x603eca7c` 等地址精确还原到函数行号。
 
-### 版本检查硬件版本号测试不通过（T126155）
+### 版本检查硬件版本号测试不通过（问题单 #1）
 
 **现象**：V50E（版本 T0.0.1，必现）ATE「版本检查硬件版本号」测试不通过，网页端显示 V2.0。
 
 **定位**：ATE 原先从 `/resource/etc/default/mmiset/version/version.txt` 读硬件版本号；该路径属 frogfs 只读文件系统、构建时写入，只会有 `softwareVersion=`，不可能有 `hardwareVersion=`（硬件版本须运行时经 ADC 才能确定）。网页端读 ADC + BOM 映射，**两侧数据源不一致**。
 
-**修改**：ATE 硬件版本改为直接读 ADC + ATE 内部 BOM 阈值/映射表，与网页端统一，不再依赖 `version.txt`；并把 ADC 采样与电压换算改为直接用 SDK ADC driver 完成，去掉对 `hardware_ver.h` / `x_adc_ctrl` 的引用。同时单机 ATE（有屏机型）版本测试界面由「只显示软件版本号」改为**同时显示软件与硬件版本号**。改动清单：`bk_ate_proto.c`（新增 `ate_adc_read_voltage()`，内部 BOM 表）、`bk_ate_proto.h`（注释更新）、`CMakeLists.txt`（移除 `qemu_voip hardware_version/inc` 私有 include）。
+**修改**：ATE 硬件版本改为直接读 ADC + ATE 内部 BOM 阈值/映射表，与网页端统一，不再依赖 `version.txt`；并把 ADC 采样与电压换算改为直接用 SDK ADC driver 完成，去掉对 `hardware_ver.h` / `x_adc_ctrl` 的引用。同时单机 ATE（有屏机型）版本测试界面由「只显示软件版本号」改为**同时显示软件与硬件版本号**。改动清单：`bk_ate_proto.c`（新增 `ate_adc_read_voltage()`，内部 BOM 表）、`bk_ate_proto.h`（注释更新）、`CMakeLists.txt`（移除 `voip-project hardware_version/inc` 私有 include）。
 
 **验证**：H2E / V60E / V50E 的 ATE 测试均可正确获取硬件版本号；V60E / V50E 单机版本测试界面可同时看到 SW 与 HW 版本。用 `rg` 复查 ATE 目录无 `hardware_ver` / `x_adc_read` / `x_adc_to_voltage` / 旧 include 残留；未跑完整工程编译。
 
@@ -333,7 +333,7 @@ headless 侧的同类问题：`bk_ate_tone_test_session_begin()` 返回类型由
    - 有屏单机：详情页多为**占位**，Key/LCD/LED/Loopback/Tone 各子项尚未逐项接入同一 `ate_ui` 线程或拆模块；物理 Soft / 侧键不在矩阵扫描内则无事件；`bk_ate_boot_probe_standalone_mute_hold()` 仍保留矩阵 keycode 回退。
    - 崩溃分析缺 `app.elf`，无法完成地址到行号的精确还原；建议后续保留固件对应的 elf 或直接做 addr2line。
    - headless：退出闪灯期间 `s_active_det` 未立即清零，`leave()` 已执行但测项 `on_key` 仍可能被触发；恢复出厂失败仅有日志、无额外 LED 反馈；联机 ATE 选中后线程永久 sleep、只能重启回预选；`bk_ate_tone_test_session_begin()` 虽改为返回 `int`，实现仍恒返回 0（预留）。
-   - vcore 参考实现：亮度/对比度回调为占位实现；按键表与另一产品线（`xapp` / AWTK 实现）在「PRESSED 还是 RELEASED」「用哪些键」上存在定制差异，跨产品比较时需注意；自动切换周期若要改，应评估对所有产品的影响（vcore 改动面大）。
+   - vcore 参考实现：亮度/对比度回调为占位实现；按键表与另一产品线（`legacy-app` / AWTK 实现）在「PRESSED 还是 RELEASED」「用哪些键」上存在定制差异，跨产品比较时需注意；自动切换周期若要改，应评估对所有产品的影响（vcore 改动面大）。
 7. 验证建议：自动换屏周期、`#` 退出闪烁时长等时间参数应在目标板上用日志实测确认（不同 OS 上 `taskDelay` / `sysClkRateGet` 语义可能有偏差）。
 
 ---

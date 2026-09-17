@@ -5,7 +5,7 @@ draft = false
 weight = 2
 +++
 
-我在 BK7258 上理联机 ATE 协议链路时，H2E 那次「组合键能进工厂 ATE、联机却失败」（T127291）最后落到 opt43 钩子没装上、工厂 DHCP 未启动；I12-V2 从按下 `*` 进 ATE 也远慢于配置的 5s。下面把协议链路、I12 对标与调试完整记一遍。
+我在 BK7258 上理联机 ATE 协议链路时，H2E 那次「组合键能进工厂 ATE、联机却失败」（问题单 #1）最后落到 opt43 钩子没装上、工厂 DHCP 未启动；I12-V2 从按下 `*` 进 ATE 也远慢于配置的 5s。下面把协议链路、I12 对标与调试完整记一遍。
 
 ## 概述
 
@@ -13,9 +13,9 @@ weight = 2
 
 1. **I12-V2（BK7258）ATE 需求与实现方案**：进入方式（单键长按）、联机测试项清单、单机极简 ATE、老化规格、硬件抽象层补充。源为 `i12-V2_ATE_implementation_plan.md`（方案版 v1.0，2026-07-08）与 `I12-V2_ATE.txt`（现场调试与命令记录）。
 2. **联机 ATE 的协议链路与 LINE 测试项**：从 FCT 下发 TCP 报文到各测试项 handler 的调用链，以及 I12 上 LINE（line_in/line_out）回环的完整控制面与数据面路线。
-3. **两个调试案例**：工厂联机 ATE 失败（H2E，T127291）的根因与修复；ATE「MAC 清除」流程的抓包+串口交叉验证。
+3. **两个调试案例**：工厂联机 ATE 失败（H2E，问题单 #1）的根因与修复；ATE「MAC 清除」流程的抓包+串口交叉验证。
 
-本组件对应代码库路径：`bk_avdk_smp/ap/components/bk_thirdparty/bk_ate/`（源文档基于本地工作副本 `~/work/bk_ate` 下的同名路径）。老平台侧对应 `fv_app/vcore/platform/ate/`（协议核心）与 `fv_app/xapp/ate/`（产品层实现）。
+本组件对应代码库路径：`sdk-repo/ap/components/bk_thirdparty/bk_ate/`（源文档基于本地工作副本 `~/work/ate` 下的同名路径）。老平台侧对应 `legacy-repo/vcore/platform/ate/`（协议核心）与 `legacy-repo/legacy-app/ate/`（产品层实现）。
 
 | 源文件 | 主要贡献 |
 |--------|----------|
@@ -87,7 +87,7 @@ msg=RT&cmd=test_ip_call&result=success&reason=...
 
 ### DHCP option 43 与工厂联网路径
 
-工厂路径跳过正常 UI 与网络管理（NM），联网只依赖 `bk_ate` 工厂联网代码（`projects/qemu_voip/port/lwip/bk_ate_qemu_port.c` 及其配套 `qemu_dhcp_option.c/h`）：
+工厂路径跳过正常 UI 与网络管理（NM），联网只依赖 `bk_ate` 工厂联网代码（`projects/voip-project/port/lwip/bk_ate_qemu_port.c` 及其配套 `qemu_dhcp_option.c/h`）：
 
 ```
 组合键 factory_path
@@ -218,7 +218,7 @@ reboot:        rebootRequestReceived → ateSysReboot → vcoreReboot(VCORE_REBO
 - `wr` 响应里回传的 `wifi_mac` 是 WiFi 芯片（AIC8800）硬件 MAC，**不会被 `write_mac` 修改**，仅作信息回传；清除的是位于 CTRL 分区的以太网 MAC。
 - `STORAGE_RESET_ALL` 主要清 `/userdata` 用户配置、数据库（电话本、通话记录）、证书/铃声/壁纸等。
 
-命令名宏与注册位置：`fv_app/vcore/platform/ate/include/ateMsgParse.h` 定义 `CMD_SET_ID`/`CMD_WRITE_MAC`/`CMD_FACTORY_RESET`/`CMD_REBOOT`/`CMD_DISCONNECT`；`ateCmdProcess.c` 用 `ateCmdRegisterWithCmdName(...)` 注册 handler；`xapp/ate/src/ateMain.c` 注册平台回调（`ateSetDevMacCbRegister` 等）。
+命令名宏与注册位置：`legacy-repo/vcore/platform/ate/include/ateMsgParse.h` 定义 `CMD_SET_ID`/`CMD_WRITE_MAC`/`CMD_FACTORY_RESET`/`CMD_REBOOT`/`CMD_DISCONNECT`；`ateCmdProcess.c` 用 `ateCmdRegisterWithCmdName(...)` 注册 handler；`legacy-app/ate/src/ateMain.c` 注册平台回调（`ateSetDevMacCbRegister` 等）。
 
 ### I12-V2 硬件与实物对应
 
@@ -245,7 +245,7 @@ reboot:        rebootRequestReceived → ateSysReboot → vcoreReboot(VCORE_REBO
 - LED 调试命令：`ap_cmd gpio_led 9 1`、`52 1`、`53 1`、`54 1`；
 - 两路短路输入对应 GPIO **50、49**，读电平用 `ap_cmd gpio input_get 49`；
 - 两路继电器端子为第 1 路 NO1/COM1/NC1、第 2 路 NO2/COM2/NC2，是标准干接点（无源开关），**接 LED 必须外接电源**；每路 LED 单独回路，COM 只接 LED，NO/NC 只接电源；
-- 加热温感沿用 A11 用过的热敏电阻（关联任务 T110468，热敏电阻与 ADC 转换）。
+- 加热温感沿用 A11 用过的热敏电阻（关联任务 #2，热敏电阻与 ADC 转换）。
 
 ### ATE 上报的产品名映射
 
@@ -258,14 +258,14 @@ reboot:        rebootRequestReceived → ateSysReboot → vcoreReboot(VCORE_REBO
 编译示例（源文档记录）：
 
 ```text
-make clean && make bk7258 PROJECT=qemu_voip PRODUCT=MB12-V2 TARGET=board PRODUCT_VSOT_SUPPORT=1 VERSION=T123
+make clean && make bk7258 PROJECT=voip-project PRODUCT=MB12-V2 TARGET=board PRODUCT_VSOT_SUPPORT=1 VERSION=T123
 ```
 
 ---
 
 ## 调试过程记录
 
-### 工厂联机 ATE 失败（H2E，T127291，2026-06-13）
+### 工厂联机 ATE 失败（H2E，问题单 #1，2026-06-13）
 
 **现象**：组合键可进入工厂 ATE（`factory_path=1`），但**联机 ATE 失败**——PC 侧无 Socket 连接、话机侧无测试项。同期 Daily 610 可过，611 与 H2E 新版不行。
 
@@ -299,7 +299,7 @@ dhcp skip: link_up guard (why=boot/link)
 | 去掉 `netif_is_link_up` 前置检查 | 避免 worker 误读 link 拦住 DHCP |
 | 仅用 `net_get_eth_handle()` 指针 | 不再拼 `st1` 字符串 |
 
-变更文件：`projects/qemu_voip/port/lwip/bk_ate_qemu_port.c`、`projects/qemu_voip/port/lwip/qemu_dhcp_option.c/h`。
+变更文件：`projects/voip-project/port/lwip/bk_ate_qemu_port.c`、`projects/voip-project/port/lwip/qemu_dhcp_option.c/h`。
 
 **验证结论与影响面**：修复版本（205544 等）联机 ATE 流程正常；旧代码 + 诊断日志版本可稳定复现失败。影响面为「`CONFIG_BK_ATE` 打开 + 组合键 factory_path」的联机 ATE；正常开机、NM 日常 DHCP、WiFi 等不受影响（global opt43 未注册时 hook 行为与改前 per-if 一致）。H2E/V50E/V60E Kconfig 绑核一致，修复通用，建议 V50E/V60E 各抽一台做联机冒烟。
 
@@ -347,7 +347,7 @@ ap_cmd adev_tone stop
 
 ### MAC 清除流程确认（抓包 + 串口交叉验证）
 
-**手段**：ATE 执行「MAC 清除」时同步抓包（`2.pcapng`）与保存串口日志（MobaXterm 115200 记录），再与 `fv_app` ATE 源码交叉比对。测试平台为 V62W（非 rk3506），但 ATE 协议与处理逻辑与 rk3506 代码库一致。
+**手段**：ATE 执行「MAC 清除」时同步抓包（`2.pcapng`）与保存串口日志（MobaXterm 115200 记录），再与 `legacy-repo` ATE 源码交叉比对。测试平台为 V62W（非 rk3506），但 ATE 协议与处理逻辑与 rk3506 代码库一致。
 
 **时序还原（关键包）**：
 

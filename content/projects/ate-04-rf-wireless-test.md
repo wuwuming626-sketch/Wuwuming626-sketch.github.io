@@ -258,14 +258,14 @@ bModeTxTest=================<功率dBm>/<EVM dB>/B_freqErr=<频偏Hz>
 | --- | --- | --- |
 | `#error "At least one BA TX agreement shall be allowed"` | 产品 config 文件尾缺 `CONFIG_WIFI4=y`（`rwnx_config.h` 的 `CFG_BATX=5` 被 `#if CONFIG_WIFI4` 包住） | 把 `WIFI4`/`WIFI6_CODE_STACK`/`RWNX_SW_TXQ` 加回文件尾 |
 | 链接缺 `tmp_pwr_tab` / 温度符号 | `CONFIG_VND_CAL`、`CONFIG_TEMP_DETECT` 默认 n | 显式打开；不要指望 Kconfig default 进产品 defconfig |
-| `undefined reference to wifi_command` | `lfs_cli.c` 的 `wpacmd` 只 `#if CONFIG_WIFI_ENABLE`，而 PA1 无 `X_WIFI_SUPPORT`，不编 `bk_wifi_port.c` | 守卫改为 `#if CONFIG_WIFI_ENABLE && !CONFIG_BK_ATE_STANDALONE_PA1`，只裁 PA1；不要改用 `defined(CONFIG_XAPP_WIFI_BK_PORT)`（该宏在 `lfs_cli.c` 看不到，会导致所有机型都不编 `wpacmd`） |
+| `undefined reference to wifi_command` | `lfs_cli.c` 的 `wpacmd` 只 `#if CONFIG_WIFI_ENABLE`，而 PA1 无 `X_WIFI_SUPPORT`，不编 `bk_wifi_port.c` | 守卫改为 `#if CONFIG_WIFI_ENABLE && !CONFIG_BK_ATE_STANDALONE_PA1`，只裁 PA1；不要改用 `defined(CONFIG_LEGACY_APP_WIFI_BK_PORT)`（该宏在 `lfs_cli.c` 看不到，会导致所有机型都不编 `wpacmd`） |
 | 扫描 `upload_cnt=0` / `rx_header_dma_dead` | DMA 缓冲落到 PSRAM | 见 4.3 |
 
 ### STA 连不上热点：MAC DMA 必须在片内 SRAM
 
 **现象**：同一固件，有 SRAM 表时工装 PASS；删表后工装 FAIL（以太网重连、无 `if=wifi`）。
 
-**定位**：`qemu_voip` 默认 `CONFIG_PSRAM_AS_EXECUTE_MEMORY`，普通 `.bss` 在 PSRAM，而 **WiFi MAC DMA 到不了 PSRAM**。链接脚本仅在 `CONFIG_AP_WIFI_DATA_SIZE > 0` 时才创建 `WIFI_DATA` 段并把 `libwifi.a` 的 `.bss` 放进去，该宏来自产品 `ram_regions.csv`。
+**定位**：`voip-project` 默认 `CONFIG_PSRAM_AS_EXECUTE_MEMORY`，普通 `.bss` 在 PSRAM，而 **WiFi MAC DMA 到不了 PSRAM**。链接脚本仅在 `CONFIG_AP_WIFI_DATA_SIZE > 0` 时才创建 `WIFI_DATA` 段并把 `libwifi.a` 的 `.bss` 放进去，该宏来自产品 `ram_regions.csv`。
 
 **改动**：为 PA1 新建与 V50W 同尺寸的两份分区表（AP 与 Post/CP），新增 `AP_WIFI_DATA` 区，`AP_RAM` 与 `CP_RAM` 相应缩小，`CP_RAM` 起点必须与切分后一致且 512 对齐（不对齐会清掉 CP IRAM VTOR，静默起不来）。
 

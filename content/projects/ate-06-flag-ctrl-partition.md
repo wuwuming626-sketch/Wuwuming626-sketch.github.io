@@ -7,7 +7,7 @@ weight = 6
 
 我在 V60E 上排查已产测设备重烧 all-app.bin 后又进 ATE 的问题，发现 clean meta 顺着打包链路写穿了 ctrl 分区，把 ATE_DONE 位打回 0。下面是完整的定位与验证记录。
 
-> 范围：BK7258 话机 SKU（`bk_avdk_smp` / `qemu_voip`）打包链路与运行态产测标志
+> 范围：BK7258 话机 SKU（`sdk-repo` / `voip-project`）打包链路与运行态产测标志
 > 机型：V60E / V60P-V2（真机验证），H2E / H2U 等（硬件版本识别）
 > 素材：6 份设计稿 / 任务报告 / 前后对照 / 方案对比文档
 
@@ -202,7 +202,7 @@ magic 无效时的各调用方分支（均为安全分支）：
 - 差异只在：`all-app.bin` 是否顺带覆盖 ctrl。
 - `all-app-factory.bin` = `all-app.bin` + 在 `sys_net @ 0x7FF000` 打 PID / GroupID 补丁（ctrl 窗保持 `0xFF`）。
 - 工厂烧录器单文件上限为 `0x7FE000`（8MB − 8KB），`sys_net` 补丁落在 `0x7FF000`，
-  故采用分次烧录规避（见问题单 T127384）。
+  故采用分次烧录规避（见问题单 #1）。
 - **前提**：烧录器只擦写镜像覆盖到的扇区，不做全片擦除；若全片擦，ctrl 仍会丢，与是否打包无关。
 
 ### 备选方案 A：ctrl 移出 all-app 并并入 32KB `sysnet.bin`（仅设计，未落地）
@@ -238,22 +238,22 @@ FACTORY_TAIL_SIZE = 0x800000 - 0x7F8000 = 0x8000 = 32 KiB
 | 改动量 | 最小（manifest + 截断） | 需改 pid_pack / segments 等 |
 | 主要解决 | 重烧 all-app 误清 `ATE_DONE` | 工厂一次带上 ctrl + PID |
 
-### 与产测相关的另一条链路：硬件版本号识别（ATE vs xApp）
+### 与产测相关的另一条链路：硬件版本号识别（ATE vs legacy-app）
 
 与 ctrl/ATE_DONE 无耦合，但同属产测判定的组成部分，单独记录。
 
-| | ATE | xApp（代码同步后） |
+| | ATE | legacy-app（代码同步后） |
 |---|---|---|
-| 配置来源 | 无配置文件，`bk_ate_hw_version.h` 硬编码 | `/etc/hw_ver.conf`（构建时从 `xGui/tools/hw_version_conf/<product>/hw_ver.conf` 模板拷入） |
+| 配置来源 | 无配置文件，`bk_ate_hw_version.h` 硬编码 | `/etc/hw_ver.conf`（构建时从 `gui-repo/tools/hw_version_conf/<product>/hw_ver.conf` 模板拷入） |
 | 分发方式 | `bk_ate_hw_ver_board_find(model)` 按型号查表 | 每个产品固件内置自己的 conf 文件 |
 | 支持方式 / 通道 | 仅 ADC，ADC15（GPIO13 / P13） | ADC 或 GPIO（conf 指定），默认 ADC15，可覆盖 |
 | 运行时入口 | `bk_ate_proto.c` | `main.c` → `hardware_ver.c` → `propGetHardwareVersion()` |
 
 数据流：ATE 走 `bk_ate_proto.c → bk_ate_hw_ver_board_find(model) → bk_adc_read(ADC15) → 换算 mV → bk_ate_hw_ver_match_mv() → hw_ver 字符串`；
-xApp 走 `main.c: getHardwareVersion() → hardware_ver_read()`，按 conf 的 `[ADC]` 走 `x_adc_read → x_adc_to_voltage` 范围匹配，
+legacy-app 走 `main.c: getHardwareVersion() → hardware_ver_read()`，按 conf 的 `[ADC]` 走 `x_adc_read → x_adc_to_voltage` 范围匹配，
 按 `[GPIO]` 走 `x_gpio_get_input(GPIO82/80/81)` 的 pattern 匹配，结果同时写入 `version.txt` 供 POST / RM08 读取。
 
-阈值（mV，V50E / V60E / V50P / V60P 及 G、J、X 系列共用，ATE 与 xApp ADC 模式完全一致）：
+阈值（mV，V50E / V60E / V50P / V60P 及 G、J、X 系列共用，ATE 与 legacy-app ADC 模式完全一致）：
 V2.0 = 3010~3300，V2.1 = 2460~3009，V2.2 = 1925~2459，V2.3 = 1355~1924，V1.0 = 830~1354，V1.1 = 300~829，V1.2 = 0~299。
 GPIO 模式用 GPIO82/80/81 读 3-bit 编码：V2.0 = `04`、V2.1 = `05`、V1.0 = `00`、V1.1 = `02`，
 只有 4 档，**无法覆盖 V2.2 / V2.3 / V1.2**。H2E / H2U 只定义 V2.0 = 2780~3300 mV，两边一致。
@@ -323,7 +323,7 @@ xxd -s 0x7F8000 all-app.bin  → 无输出（EOF）
 
 | 文件 | 变更量 | 作用 |
 |------|--------|------|
-| `projects/qemu_voip/fs_pack_manifest.json` | −6 行 | 删除 ctrl 的 raw 条目，切断其进入 `all-app` 的唯一入口 |
+| `projects/voip-project/fs_pack_manifest.json` | −6 行 | 删除 ctrl 的 raw 条目，切断其进入 `all-app` 的唯一入口 |
 | `tools/build_tools/build_process/bk_build_package.py` | +51 行 | 新增 `packed_sections_end()` / `truncate_bin_to_packed_end()`，在 `pack_all_bin()` 的对齐之后调用 |
 | `tools/build_tools/build_process/bk_sdk/bk_sdk_project.py` | +8 行 | `post_package()` 在 `ota_pack()` 之后、生成 factory 镜像之前再截一次，防止被再次拉长 |
 
@@ -398,7 +398,7 @@ create xui_main
 - **未产测设备 OTA 后仍进 ATE**：不是「擦掉了 ATE_DONE」，而是「ATE_DONE 从未写过」；
   删 ctrl 前后行为一致，根因是产测未 `set_ate_done(1)` 就 OTA。
 - **硬件版本识别实测**：V60P V2.0（~3025mV）、V60P V2.1（~3000mV）、V50P V2.0（~3026mV）
-  ATE 与 xApp 判定一致。
+  ATE 与 legacy-app 判定一致。
 
 ---
 
@@ -433,19 +433,19 @@ create xui_main
 
 | 路径 | 说明 |
 |------|------|
-| `bk_avdk_smp/projects/qemu_voip/fs_pack_manifest.json` | ctrl 是否进入打包的开关入口（本次改动点） |
-| `bk_avdk_smp/projects/qemu_voip/partitions/bk7258/auto_partitions.csv` | Flash 分区表（保留 ctrl 行） |
-| `bk_avdk_smp/projects/qemu_voip/partitions/bk7258/ota_pack.json` | OTA 过滤（`include_apps` 不含 ctrl） |
-| `bk_avdk_smp/tools/build_tools/build_process/bk_build_package.py` | 32 字节对齐 + 截断到已打包终点 |
-| `bk_avdk_smp/tools/build_tools/build_process/bk_sdk/bk_sdk_project.py` | `post_package` 在 OTA 后再截断 |
-| `bk_avdk_smp/tools/build_tools/build_process/bk_sdk/bk_fs_image_pack.py` | 数据分区合并进 `bk_package.json` 的逻辑 |
-| `bk_avdk_smp/tools/build_tools/build_process/bk_sdk/bk_ctrl_partition_gen.py` | 生成 `partitions/ctrl.bin`（保留） |
-| `bk_avdk_smp/tools/build_tools/build_process/bk_sdk/bk_curr_project.py`、`bk_project.py` | CRC 校验开关写死为开；`get_packager` 据此选带 CRC 打包器 |
-| `bk_avdk_smp/tools/env_tools/bk_py_libs/bk_packager/bk_packager_linear_crc.py`、`bk_packager_crc_decorator.py` | 带校验打包器；收尾 `post_link` 追加 34B `0xFF`；代码区插 CRC |
-| `bk_avdk_smp/ap/components/bk_thirdparty/fv_bk_ota/fv_bk_ota_ctrl.c`、`include/fv_bk_ota_ctrl.h` | 运行时读写 + `0xFF` 降级；`ATE_DONE` 等位定义 |
-| `bk_avdk_smp/cp/components/fv_cp_boot_ctrl/cp_boot_select.c` | GPIO 强制 Recovery（需 `CONFIG_FV_CP_BOOT_GPIO`） |
+| `sdk-repo/projects/voip-project/fs_pack_manifest.json` | ctrl 是否进入打包的开关入口（本次改动点） |
+| `sdk-repo/projects/voip-project/partitions/bk7258/auto_partitions.csv` | Flash 分区表（保留 ctrl 行） |
+| `sdk-repo/projects/voip-project/partitions/bk7258/ota_pack.json` | OTA 过滤（`include_apps` 不含 ctrl） |
+| `sdk-repo/tools/build_tools/build_process/bk_build_package.py` | 32 字节对齐 + 截断到已打包终点 |
+| `sdk-repo/tools/build_tools/build_process/bk_sdk/bk_sdk_project.py` | `post_package` 在 OTA 后再截断 |
+| `sdk-repo/tools/build_tools/build_process/bk_sdk/bk_fs_image_pack.py` | 数据分区合并进 `bk_package.json` 的逻辑 |
+| `sdk-repo/tools/build_tools/build_process/bk_sdk/bk_ctrl_partition_gen.py` | 生成 `partitions/ctrl.bin`（保留） |
+| `sdk-repo/tools/build_tools/build_process/bk_sdk/bk_curr_project.py`、`bk_project.py` | CRC 校验开关写死为开；`get_packager` 据此选带 CRC 打包器 |
+| `sdk-repo/tools/env_tools/bk_py_libs/bk_packager/bk_packager_linear_crc.py`、`bk_packager_crc_decorator.py` | 带校验打包器；收尾 `post_link` 追加 34B `0xFF`；代码区插 CRC |
+| `sdk-repo/ap/components/bk_thirdparty/fv_bk_ota/fv_bk_ota_ctrl.c`、`include/fv_bk_ota_ctrl.h` | 运行时读写 + `0xFF` 降级；`ATE_DONE` 等位定义 |
+| `sdk-repo/cp/components/fv_cp_boot_ctrl/cp_boot_select.c` | GPIO 强制 Recovery（需 `CONFIG_FV_CP_BOOT_GPIO`） |
 
-验证证据（打包 before/after 备份、真机与工装日志、构建产物目录）存于 `~/work/bk_ate/` 与 `bk_avdk_smp/build/bk7258/qemu_voip_v60e/package/`。
+验证证据（打包 before/after 备份、真机与工装日志、构建产物目录）存于 `~/work/ate/` 与 `sdk-repo/build/bk7258/voip-project_v60e/package/`。
 
 ---
 

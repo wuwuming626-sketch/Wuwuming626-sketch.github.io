@@ -8,8 +8,8 @@ weight = 5
 我在 V60E 上把产测入口、单机与联机测项、音频路由和 EHS 联调走了一遍，按键与矩阵由 keymaps.txt 驱动，音频问题集中在 DMA 上下文、GPIO 路由与线程并发三处。下面把整条链路和踩过的坑记一遍。
 
 > 本文整理 V60E / V50E 等机型的产测（ATE）框架、测试项流程与联调过程中的问题定位记录。
-> 涉及芯片平台 BK7258（AP + CP 双核），固件工程为 `bk_avdk_smp` / `qemu_voip`。
-> 文中代码路径、函数名、配置项、日志片段均做脱敏处理（厂商名以 `Vendor` 代替，个人目录以 `~/work/bk_ate` 代替）。
+> 涉及芯片平台 BK7258（AP + CP 双核），固件工程为 `sdk-repo` / `voip-project`。
+> 文中代码路径、函数名、配置项、日志片段均做脱敏处理（厂商名以 `Vendor` 代替，个人目录以 `~/work/ate` 代替）。
 
 ---
 
@@ -70,9 +70,9 @@ weight = 5
 | `bk_ate/src/bk_ate_vendor_msg.c` | `msg=TR/CR/RC` 分发，`test_*` 与行为绑定 |
 | `bk_ate/src/bk_ate_ehs.c` / `bk_ate_hook.c` / `bk_ate_ip_call.c` / `bk_ate_voice_echo.c` / `bk_ate_tone.c` / `bk_ate_led.c` | 各测试项实现 |
 | `bk_ate/include/bk_ate_hw_version.h` | 各机型 GPIO 阈值表（如 EHS `HEADSET_DET_GPIO`） |
-| `projects/qemu_voip/port/bk_ate_factory_port.c` | 工程侧 GPIO/存储/路由钩子 |
-| `projects/qemu_voip/config/products/v60e/ap/config/bk7258_ap/config` | 机型 `CONFIG_BK_ATE_*` 超时、功能开关 |
-| `projects/qemu_voip/config/products/v60e/ap/config/bk7258_ap/usr_gpio_cfg.h` | GPIO 默认设备表、PWM 映射表 |
+| `projects/voip-project/port/bk_ate_factory_port.c` | 工程侧 GPIO/存储/路由钩子 |
+| `projects/voip-project/config/products/v60e/ap/config/bk7258_ap/config` | 机型 `CONFIG_BK_ATE_*` 超时、功能开关 |
+| `projects/voip-project/config/products/v60e/ap/config/bk7258_ap/usr_gpio_cfg.h` | GPIO 默认设备表、PWM 映射表 |
 
 ### 线程与锁
 
@@ -89,7 +89,7 @@ weight = 5
 | `/etc/led.conf` | LED GPIO 表（如 `SIDE_DSS_LED0..2`、`POWER_LED`） |
 | `/etc/gpio.conf` | 功放/模拟开关 GPIO（`SPK_AMP_GPIO`、`HN_HS_AMP_GPIO` 等） |
 | `sys_net` 分区 V2 布局 | 设备 MAC / SN / 产品 PID 冗余区（PID 三副本 + CRC） |
-| `projects/qemu_voip/product_pid.json` | 机型 → PID 映射（打包脚本读取） |
+| `projects/voip-project/product_pid.json` | 机型 → PID 映射（打包脚本读取） |
 
 ---
 
