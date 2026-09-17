@@ -3,6 +3,8 @@ title = 'ATE-06 产测标志位与 ctrl 分区'
 date = 2026-09-16T10:00:00+08:00
 draft = false
 weight = 6
+tags = ['固件开发', 'ATE 产测', '分区表', 'OTA 升级', 'BK7258 平台']
+series = 'ATE 产测实战'
 +++
 
 一台已经产测通过的 V60E，重烧一次 all-app.bin 之后，居然又乖乖回到了 ATE 模式。翻来查去，元凶是 clean meta——它顺着打包链路一路写穿了 ctrl 分区，把 ATE_DONE 位硬生生打回了 0。下面是这桩「产测记忆错乱」的完整定位与验证过程。

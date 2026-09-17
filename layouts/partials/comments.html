@@ -1,0 +1,48 @@
+{{- /* 评论：giscus（基于 GitHub Discussions，无后端）
+       需要在 GitHub 侧开启 Discussions 并安装 giscus App，
+       配置项见 hugo.toml 的 [params.giscus] */ -}}
+{{- $g := site.Params.giscus -}}
+{{- if and $g $g.repo $g.repoId $g.categoryId -}}
+<section class="comments" id="comments">
+    <h2 class="comments-title">{{ i18n "comments" | default "评论" }}</h2>
+    <script src="https://giscus.app/client.js"
+        data-repo="{{ $g.repo }}"
+        data-repo-id="{{ $g.repoId }}"
+        data-category="{{ $g.category | default "Announcements" }}"
+        data-category-id="{{ $g.categoryId }}"
+        data-mapping="{{ $g.mapping | default "pathname" }}"
+        data-strict="0"
+        data-reactions-enabled="{{ $g.reactionsEnabled | default "1" }}"
+        data-emit-metadata="0"
+        data-input-position="{{ $g.inputPosition | default "top" }}"
+        data-theme="preferred_color_scheme"
+        data-lang="{{ $g.lang | default "zh-CN" }}"
+        data-loading="lazy"
+        crossorigin="anonymous"
+        async>
+    </script>
+    <noscript>评论需要启用 JavaScript。</noscript>
+    <script>
+        // giscus 的 data-theme 不认站点的手动切换，这里跟着 html[data-theme] 同步
+        (function () {
+            function sync() {
+                var f = document.querySelector('iframe.giscus-frame');
+                if (!f || !f.contentWindow) return;
+                f.contentWindow.postMessage({
+                    giscus: { setConfig: { theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light' } }
+                }, 'https://giscus.app');
+            }
+            var n = 0;
+            var timer = setInterval(function () { sync(); if (++n > 12) clearInterval(timer); }, 700);
+            new MutationObserver(sync).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+        })();
+    </script>
+</section>
+{{- else if hugo.IsServer -}}
+<section class="comments" id="comments">
+    <p class="comments-placeholder">
+        评论区未配置：请在 <code>hugo.toml</code> 的 <code>[params.giscus]</code> 里填入 <code>categoryId</code>。
+        取法见文件末尾注释。（此提示只在本地预览出现）
+    </p>
+</section>
+{{- end -}}

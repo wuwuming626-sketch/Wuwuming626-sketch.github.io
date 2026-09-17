@@ -1,0 +1,55 @@
+{{- /* 连载系列导航：只在文章声明了 series 且同系列多于 1 篇时渲染 */ -}}
+{{- $series := .Params.series -}}
+{{- with $series -}}
+{{- $pages := where site.RegularPages "Params.series" "eq" . -}}
+{{- $pages = sort $pages "Weight" "asc" -}}
+{{- $total := len $pages -}}
+{{- if gt $total 1 -}}
+{{- $idx := 0 -}}
+{{- range $i, $p := $pages -}}
+{{- if eq $p.RelPermalink $.RelPermalink -}}{{- $idx = add $i 1 -}}{{- end -}}
+{{- end -}}
+{{- $prev := false -}}
+{{- $next := false -}}
+{{- if and $idx (gt $idx 1) -}}{{- $prev = index $pages (sub $idx 2) -}}{{- end -}}
+{{- if and $idx (lt $idx $total) -}}{{- $next = index $pages $idx -}}{{- end -}}
+<aside class="post-series">
+    <div class="post-series-head">
+        <span class="post-series-badge">{{ i18n "series_badge" | default "连载" }}</span>
+        <span class="post-series-name">{{ $series }}</span>
+        <span class="post-series-progress">{{ printf "%d / %d" $idx $total }}</span>
+    </div>
+    <div class="post-series-bar" role="presentation">
+        <span style="width: {{ div (mul $idx 100) $total }}%"></span>
+    </div>
+    <details class="post-series-more">
+        <summary>{{ printf "本系列共 %d 篇，查看目录" $total }}</summary>
+        <ol class="post-series-list">
+            {{- range $i, $p := $pages }}
+            <li{{ if eq $p.RelPermalink $.RelPermalink }} class="is-current"{{ end }}>
+                <a href="{{ $p.RelPermalink }}">{{ $p.Title }}</a>
+            </li>
+            {{- end }}
+        </ol>
+    </details>
+    <nav class="post-series-nav">
+        {{- if $prev }}
+        <a class="post-series-prev" href="{{ $prev.RelPermalink }}" rel="prev">
+            <span class="post-series-dir">上一篇</span>
+            <span class="post-series-title">{{ $prev.Title }}</span>
+        </a>
+        {{- else }}
+        <span class="post-series-prev is-empty"><span class="post-series-dir">已是第一篇</span></span>
+        {{- end }}
+        {{- if $next }}
+        <a class="post-series-next" href="{{ $next.RelPermalink }}" rel="next">
+            <span class="post-series-dir">下一篇</span>
+            <span class="post-series-title">{{ $next.Title }}</span>
+        </a>
+        {{- else }}
+        <span class="post-series-next is-empty"><span class="post-series-dir">已是最后一篇</span></span>
+        {{- end }}
+    </nav>
+</aside>
+{{- end -}}
+{{- end -}}

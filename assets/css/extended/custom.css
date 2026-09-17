@@ -424,6 +424,381 @@ html[data-theme="dark"] .post-entry:hover {
     background: var(--code-bg);
 }
 
+/* ---------- 10. 阅读进度条 ---------- */
+.reading-progress {
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: 3px;
+    z-index: 50;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.reading-progress.is-visible {
+    opacity: 1;
+}
+
+.reading-progress > span {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: 0 999px 999px 0;
+    background: linear-gradient(90deg, #ff8a3d, #2fb8f5 55%, #a56bff);
+}
+
+/* ---------- 11. 目录跟随高亮 ---------- */
+.toc .inner a {
+    padding: 1px 6px;
+    margin-inline-start: -6px;
+    border-radius: 6px;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.toc .inner a.is-active {
+    color: var(--a-tech);
+    font-weight: 600;
+    background: color-mix(in srgb, var(--a-tech) 13%, transparent);
+}
+
+/* ---------- 12. 代码块：语言标签 ---------- */
+.md-content div.highlight > .code-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 30px;
+    padding: 0 12px;
+    font-size: 12px;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    color: var(--secondary);
+    border-bottom: 1px solid var(--border);
+}
+
+/* 让标签栏跟着代码块一起被圆角裁掉 */
+.md-content div.highlight:has(> .code-head) {
+    overflow: hidden;
+}
+
+.md-content div.highlight > .code-head .code-lang {
+    text-transform: uppercase;
+}
+
+/* ---------- 13. 连载系列导航 ---------- */
+.post-series {
+    margin: 20px 0 var(--content-gap);
+    padding: 16px 18px;
+    border: 1px solid color-mix(in srgb, var(--a-projects) 32%, var(--border));
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--a-projects) 6%, transparent);
+}
+
+.post-series-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+}
+
+.post-series-badge {
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--a-projects);
+}
+
+.post-series-name {
+    font-weight: 700;
+}
+
+.post-series-progress {
+    margin-inline-start: auto;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: var(--secondary);
+}
+
+.post-series-bar {
+    height: 4px;
+    margin-top: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--a-projects) 18%, transparent);
+}
+
+.post-series-bar > span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--a-projects), var(--a-tech));
+}
+
+.post-series-more {
+    margin-top: 10px;
+}
+
+.post-series-more summary {
+    font-size: 13px;
+    color: var(--secondary);
+    cursor: pointer;
+}
+
+.post-series-list {
+    margin: 8px 0 0;
+    padding-inline-start: 22px;
+    font-size: 14px;
+    line-height: 1.9;
+}
+
+.post-series-list li.is-current a {
+    font-weight: 700;
+    color: var(--a-projects);
+}
+
+.post-series-nav {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.post-series-nav > a,
+.post-series-nav > span {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--theme);
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.post-series-nav > a:hover {
+    border-color: var(--a-projects);
+}
+
+.post-series-dir {
+    font-size: 12px;
+    color: var(--secondary);
+}
+
+.post-series-title {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.post-series-next {
+    text-align: end;
+}
+
+.post-series-nav .is-empty {
+    opacity: 0.6;
+    border-style: dashed;
+}
+
+/* ---------- 14. 相关文章 ---------- */
+.related-posts {
+    margin-top: 30px;
+}
+
+.related-posts-title {
+    margin-bottom: 14px;
+    font-size: 18px;
+}
+
+.related-posts-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.related-post > a {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    height: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--entry);
+    text-decoration: none;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.related-post > a:hover {
+    transform: translateY(-2px);
+    border-color: var(--a-tech);
+    box-shadow: var(--card-shadow);
+}
+
+.related-post-section {
+    font-size: 12px;
+    color: var(--a-tech);
+}
+
+.related-post-title {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.related-post-summary {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    font-size: 13px;
+    color: var(--secondary);
+}
+
+/* ---------- 15. 标签 ---------- */
+.post-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0;
+}
+
+.post-tags li {
+    margin: 0;
+}
+
+.post-tags li a {
+    display: inline-block;
+    padding: 3px 12px;
+    border: 1px solid color-mix(in srgb, var(--a-tech) 35%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--a-tech) 12%, transparent);
+    color: var(--a-tech);
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.post-tags li a:hover {
+    background: color-mix(in srgb, var(--a-tech) 24%, transparent);
+}
+
+/* 标签云 */
+.terms-tags a {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--code-bg);
+    font-size: 15px;
+    text-decoration: none;
+}
+
+.terms-tags a:hover {
+    color: var(--a-tech);
+    border-color: var(--a-tech);
+}
+
+/* ---------- 16. 评论区 ---------- */
+.comments {
+    margin-top: 34px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
+.comments-title {
+    margin-bottom: 16px;
+    font-size: 18px;
+}
+
+.comments-placeholder {
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--secondary);
+}
+
+/* ---------- 17. 404 页 ---------- */
+.nf {
+    padding: 28px 16px 52px;
+    text-align: center;
+}
+
+.nf-art {
+    max-width: 230px;
+    margin: 0 auto;
+    color: var(--primary);
+}
+
+.nf-art svg {
+    width: 100%;
+    height: auto;
+}
+
+.nf-code {
+    margin: 0;
+    font-size: 54px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    background: linear-gradient(90deg, #ff8a3d, #2fb8f5 55%, #a56bff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.nf-title {
+    margin: 12px 0 10px;
+    font-size: 24px;
+}
+
+.nf-desc {
+    max-width: 520px;
+    margin: 0 auto 24px;
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--secondary);
+}
+
+.nf-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.nf-btn {
+    display: inline-block;
+    padding: 8px 18px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--entry);
+    color: var(--primary);
+    font-size: 14px;
+    text-decoration: none;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.nf-btn:hover {
+    transform: translateY(-2px);
+    border-color: var(--a-tech);
+    color: var(--a-tech);
+}
+
+.nf-btn-primary {
+    border-color: transparent;
+    color: #fff;
+    background: linear-gradient(120deg, #ff8a3d, #2fb8f5 60%, #a56bff);
+}
+
+.nf-btn-primary:hover {
+    color: #fff;
+}
+
 /* ---------- 9. 窄屏 ---------- */
 @media (max-width: 700px) {
     .post-title {
@@ -463,5 +838,22 @@ html[data-theme="dark"] .post-entry:hover {
         display: block;
         overflow-x: auto;
         font-size: 0.86em;
+    }
+
+    /* 相关文章改单列，系列前后篇改上下排 */
+    .related-posts-list {
+        grid-template-columns: 1fr;
+    }
+
+    .post-series-nav {
+        flex-direction: column;
+    }
+
+    .post-series-next {
+        text-align: start;
+    }
+
+    .post-series {
+        padding: 14px;
     }
 }

@@ -1,0 +1,44 @@
+{{- /* 相关文章：按「标签/系列匹配 → 同栏目最新 → 全站最新」三级兜底凑够 3 篇。
+       同系列的其他篇已经在页面顶部的连载导航里列过，这里不重复。 */ -}}
+{{- $limit := 3 -}}
+
+{{- $seen := slice .RelPermalink -}}
+{{- with .Params.series -}}
+{{- range where site.RegularPages "Params.series" "eq" . -}}
+{{- $seen = $seen | append .RelPermalink -}}
+{{- end -}}
+{{- end -}}
+
+{{- $sources := slice
+    (site.RegularPages.Related .)
+    (where site.RegularPages "Section" .Section).ByDate.Reverse
+    site.RegularPages.ByDate.Reverse -}}
+
+{{- $related := slice -}}
+{{- range $sources -}}
+{{- range . -}}
+{{- if lt (len $related) $limit -}}
+{{- if not (in $seen .RelPermalink) -}}
+{{- $related = $related | append . -}}
+{{- $seen = $seen | append .RelPermalink -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{- with $related }}
+<section class="related-posts">
+    <h2 class="related-posts-title">{{ i18n "keep_reading" | default "继续往下看" }}</h2>
+    <ul class="related-posts-list">
+        {{- range . }}
+        <li class="related-post">
+            <a href="{{ .RelPermalink }}">
+                <span class="related-post-section">{{ with .CurrentSection }}{{ .Title }}{{ else }}{{ .Section }}{{ end }}</span>
+                <span class="related-post-title">{{ .Title }}</span>
+                <span class="related-post-summary">{{ .Summary | plainify | truncate 70 }}</span>
+            </a>
+        </li>
+        {{- end }}
+    </ul>
+</section>
+{{- end }}

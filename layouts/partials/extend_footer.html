@@ -1,9 +1,11 @@
-{{- /* Footer custom content area start */ -}}
-{{- /* 文章页：从搜索结果跳转过来时定位并高亮命中位置 */ -}}
-{{- if eq .Kind "page" -}}
-{{- with resources.Get "js/search-jump.js" -}}
+{{- /* 只在文章页注入增强脚本。
+     footer.html 是以 .Layout / .Kind 为 key 做 partialCached 的，
+     所以这里只能放与具体页面无关的内容（站点级参数没问题）。 */ -}}
+{{- if and (eq .Kind "page") (ne .Layout "archives") (ne .Layout "search") -}}
+{{- range slice "js/reading.js" "js/search-jump.js" -}}
+{{- with resources.Get . -}}
 {{- $js := . | minify | fingerprint -}}
 <script defer src="{{ $js.RelPermalink }}" integrity="{{ $js.Data.Integrity }}"></script>
 {{- end -}}
 {{- end -}}
-{{- /* Footer custom content area end */ -}}
+{{- end -}}

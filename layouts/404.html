@@ -1,0 +1,36 @@
+{{- define "main" }}
+<div class="nf">
+    <div class="nf-art" aria-hidden="true">
+        <svg viewBox="0 0 220 180" xmlns="http://www.w3.org/2000/svg" role="img">
+            <ellipse cx="110" cy="158" rx="62" ry="10" fill="currentColor" opacity="0.08" />
+            <path d="M58 92c-6-30 16-56 50-58 34-2 58 21 56 50-2 30-26 52-56 53-28 1-45-17-50-45z"
+                fill="#f0a860" stroke="#c85a12" stroke-width="3" stroke-linejoin="round" />
+            <circle cx="72" cy="80" r="7" fill="#c85a12" opacity="0.35" />
+            <circle cx="140" cy="112" r="5" fill="#c85a12" opacity="0.35" />
+            <circle cx="128" cy="66" r="4" fill="#c85a12" opacity="0.3" />
+            <circle cx="90" cy="90" r="6" fill="#3b2a1a" />
+            <circle cx="128" cy="86" r="6" fill="#3b2a1a" />
+            <circle cx="92" cy="88" r="2" fill="#fff" />
+            <circle cx="130" cy="84" r="2" fill="#fff" />
+            <path d="M100 108c6 5 14 5 20 0" fill="none" stroke="#3b2a1a" stroke-width="3"
+                stroke-linecap="round" />
+            <g stroke="#1a7fb5" stroke-width="5" fill="none" stroke-linecap="round">
+                <circle cx="163" cy="123" r="26" fill="rgba(47,184,245,0.14)" />
+                <line x1="182" y1="142" x2="203" y2="163" />
+            </g>
+            <text x="24" y="46" font-size="30" font-weight="700" fill="#a56bff" opacity="0.75">?</text>
+            <text x="186" y="52" font-size="22" font-weight="700" fill="#2fb8f5" opacity="0.6">?</text>
+        </svg>
+    </div>
+    <p class="nf-code">404</p>
+    <h1 class="nf-title">这篇还没写，或者它已经跑路了</h1>
+    <p class="nf-desc">
+        你要找的页面不在这儿。可能是链接抄错了一个字符，也可能是这篇笔记在最近一次重构里被挪了位置。
+    </p>
+    <div class="nf-actions">
+        <a class="nf-btn nf-btn-primary" href="{{ "/" | relURL }}">回首页</a>
+        <a class="nf-btn" href="{{ "/search/" | relURL }}">搜一下关键词</a>
+        <a class="nf-btn" href="{{ "/archives/" | relURL }}">翻全部文章</a>
+    </div>
+</div>
+{{- end }}{{/* end main */ -}}

@@ -7,6 +7,8 @@ defaultContentLanguage = 'zh'
 hasCJKLanguage = true
 summaryLength = 60
 enableRobotsTXT = true
+# 用 git 提交时间作为「最后更新」，CI 里 fetch-depth 已设为 0
+enableGitInfo = true
 theme = 'PaperMod'
 
 [params]
@@ -25,9 +27,28 @@ ShowShareButtons = false
 ShowToc = true
 ShowTocOpen = false
 defaultTheme = "auto"
+# 栏目与标签列表页标题旁显示 RSS 图标，给订阅一个站内入口
+ShowRssButtonInSectionTermList = true
+# 开启评论区（模板见 layouts/partials/comments.html，配置见 [params.giscus]）
+comments = true
 
 [params.footer]
-text = '记录嵌入式固件开发中的项目实战与踩坑复盘'
+text = '记录嵌入式固件开发中的项目实战与踩坑复盘 · [RSS 订阅](/index.xml)'
+
+# giscus 评论（基于 GitHub Discussions，无后端）
+# repo / repoId 已填好；categoryId 需要你到 https://giscus.app/zh-CN 生成后粘回来，
+# 为空时不会渲染评论组件，避免页面上出现一个坏掉的框
+[params.giscus]
+repo = 'wuwuming626-sketch/wuwuming626-sketch.github.io'
+repoId = 'R_kgDOSEVD2Q'
+category = 'Announcements'
+# 未填时不会渲染评论区，避免页面上出现一个加载失败的方框
+# 取值方式见文件末尾注释
+categoryId = ''
+mapping = 'pathname'
+reactionsEnabled = '1'
+inputPosition = 'top'
+lang = 'zh-CN'
 
 [params.homeInfoParams]
 Title = "欢迎来到土豆教主的逆袭之路"
@@ -72,9 +93,28 @@ url = "/search/"
 weight = 6
 
 [[menu.main]]
+name = "标签"
+url = "/tags/"
+weight = 7
+
+[[menu.main]]
 name = "归档"
 url = "/archives/"
-weight = 7
+weight = 8
+
+# 相关文章：先按标签匹配，再按系列匹配（同栏目兜底在模板里做）
+[related]
+threshold = 20
+includeNewer = true
+toLower = false
+
+[[related.indices]]
+name = 'tags'
+weight = 100
+
+[[related.indices]]
+name = 'series'
+weight = 60
 
 # 搜索依赖首页的 index.json：不显式声明 JSON，Hugo 不会生成该文件，
 # 搜索就会去读旧产物，导致搜不到新文章
@@ -93,3 +133,12 @@ keys = ['title', 'permalink', 'summary', 'content', 'compact']
 [markup.highlight]
 # PaperMod 的语法配色靠 class 生效，用内联样式的话深色模式会串色
 noClasses = false
+
+# ── 启用 giscus 评论还差三步（都需要你在 GitHub 上操作）───────────────
+# 1. 仓库 Settings → General → Features → 勾选 Discussions
+#    （刚查过，当前是未开启状态；不开启的话代码里的 discussions 分类不存在）
+# 2. 在 Discussions 里创建一个分类（默认的 Announcements 就可以）
+# 3. 打开 https://giscus.app/zh-CN ，填入仓库名 wuwuming626-sketch/wuwuming626-sketch.github.io ，
+#    按提示给这个仓库装上 giscus App，然后把生成代码里的 data-category-id 抄到上面
+#    [params.giscus] 的 categoryId 里即可（repo / repoId 已经填好了）。
+#    在填之前评论区不会输出任何东西，站点其他部分不受影响。
