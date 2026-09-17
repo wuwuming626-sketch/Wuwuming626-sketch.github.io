@@ -3,6 +3,9 @@
        配置项见 hugo.toml 的 [params.giscus] */ -}}
 {{- $g := site.Params.giscus -}}
 {{- if and $g $g.repo $g.repoId $g.categoryId -}}
+{{- /* 用站点自己的主题 CSS 覆盖 giscus 默认配色，文件见 static/giscus/ */ -}}
+{{- $themeLight := "giscus/light.css" | absURL -}}
+{{- $themeDark := "giscus/dark.css" | absURL -}}
 <section class="comments" id="comments">
     <h2 class="comments-title">{{ i18n "comments" | default "评论" }}</h2>
     <script src="https://giscus.app/client.js"
@@ -15,7 +18,7 @@
         data-reactions-enabled="{{ $g.reactionsEnabled | default "1" }}"
         data-emit-metadata="0"
         data-input-position="{{ $g.inputPosition | default "top" }}"
-        data-theme="preferred_color_scheme"
+        data-theme="{{ $themeLight }}"
         data-lang="{{ $g.lang | default "zh-CN" }}"
         data-loading="lazy"
         crossorigin="anonymous"
@@ -23,18 +26,37 @@
     </script>
     <noscript>评论需要启用 JavaScript。</noscript>
     <script>
-        // giscus 的 data-theme 不认站点的手动切换，这里跟着 html[data-theme] 同步
+        // giscus 的自定义主题是「一个 CSS 地址」，所以跟随站点切换主题时，
+        // 要连同地址一起换掉，只传 "dark" / "light" 它会退回 GitHub 那套配色。
         (function () {
-            function sync() {
-                var f = document.querySelector('iframe.giscus-frame');
-                if (!f || !f.contentWindow) return;
-                f.contentWindow.postMessage({
-                    giscus: { setConfig: { theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light' } }
+            var THEMES = {
+                light: '{{ $themeLight }}',
+                dark: '{{ $themeDark }}'
+            };
+            var frame = null;
+
+            function send() {
+                if (!frame || !frame.contentWindow) return;
+                frame.contentWindow.postMessage({
+                    giscus: { setConfig: { theme: THEMES[document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'] } }
                 }, 'https://giscus.app');
             }
-            var n = 0;
-            var timer = setInterval(function () { sync(); if (++n > 12) clearInterval(timer); }, 700);
-            new MutationObserver(sync).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+            // iframe 是异步插入的，先轮询找到它；之后每次它重载都靠 load 事件再同步一次
+            var tries = 0;
+            var timer = setInterval(function () {
+                frame = document.querySelector('iframe.giscus-frame');
+                if (frame) {
+                    clearInterval(timer);
+                    frame.addEventListener('load', send);
+                    send();
+                } else if (++tries > 30) {
+                    clearInterval(timer);
+                }
+            }, 500);
+
+            // 站点手动切换主题
+            new MutationObserver(send).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
         })();
     </script>
 </section>

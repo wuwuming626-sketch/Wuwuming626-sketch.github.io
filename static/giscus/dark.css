@@ -1,0 +1,87 @@
+/* ==========================================================================
+   giscus 评论主题 · 深色（对应站点 html[data-theme="dark"]）
+   站点深色画布是 #1d1e20（偏中性灰），而 GitHub 深色是 #0d1117（偏蓝黑），
+   再加上 GitHub 的正文色比站点亮一档，不覆盖的话评论区会是一块明显的外来色块。
+   先用 @import 引入 giscus 官方主题，保证语法高亮等几十个变量齐全，再逐项覆盖。
+   引用方式见 layouts/partials/comments.html
+   ========================================================================== */
+@import url("https://giscus.app/themes/dark.css");
+
+main {
+    /* 画布：对应站点 --theme 与 --code-bg */
+    --color-canvas-default: #1d1e20;
+    --color-canvas-overlay: #24252a;
+    --color-canvas-inset: #26272b;
+    --color-canvas-subtle: #37383e;
+
+    /* 文字：对应站点 --content 与 --secondary。GitHub 的 #e6edf3 比站点正文更亮，会偏刺眼 */
+    --color-fg-default: #c4c4c5;
+    --color-fg-muted: #9b9c9d;
+    --color-fg-subtle: #8a8b8c;
+
+    /* 边框：对应站点 --tertiary 与 --border */
+    --color-border-default: rgb(65, 66, 68);
+    --color-border-muted: rgb(51, 51, 51);
+
+    /* 强调色：换成站点深色模式下的青蓝，替换掉 GitHub 蓝 #2f81f7 */
+    --color-accent-fg: #6fc9f5;
+    --color-accent-emphasis: #6fc9f5;
+    --color-accent-muted: rgba(111, 201, 245, 0.4);
+    --color-accent-subtle: rgba(111, 201, 245, 0.15);
+
+    /* 普通按钮 */
+    --color-btn-text: #c4c4c5;
+    --color-btn-bg: #37383e;
+    --color-btn-border: rgba(255, 255, 255, 0.1);
+    --color-btn-hover-bg: #43444b;
+    --color-btn-hover-border: rgba(255, 255, 255, 0.18);
+    --color-btn-active-bg: #4b4c54;
+    --color-btn-selected-bg: #43444b;
+
+    /* 主按钮：站点的橙，替换掉 GitHub 绿 #238636。
+       深浅两套都用 #c85a12 配白字，保证对比度稳定 */
+    --color-btn-primary-text: #ffffff;
+    --color-btn-primary-bg: #c85a12;
+    --color-btn-primary-border: rgba(255, 255, 255, 0.12);
+    --color-btn-primary-hover-bg: #e07a2e;
+    --color-btn-primary-hover-border: rgba(255, 255, 255, 0.18);
+    --color-btn-primary-selected-bg: #a8490e;
+
+    --color-neutral-muted: rgba(255, 255, 255, 0.1);
+    --color-primer-shadow-inset: 0 0 #0000;
+    --color-social-reaction-bg-hover: #43444b;
+    --color-social-reaction-bg-reacted-hover: rgba(111, 201, 245, 0.2);
+}
+
+/* 字体对齐站点。giscus 组件里的 input / textarea / button 都是 font-family: inherit，
+   把上层改掉就够了 */
+html body,
+html body .gsc-main {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC",
+        "WenQuanYi Micro Hei", sans-serif;
+}
+
+/* 字号：站点正文是 18px / 1.75，评论作为次级内容取 16px / 1.7（原来是 14px / 1.43） */
+main .gsc-comment,
+main .gsc-comment-box {
+    font-size: 16px;
+    line-height: 1.7;
+}
+
+main .gsc-comment-box-markdown-hint {
+    font-size: 13px;
+}
+
+/* 圆角统一到站点的 --radius: 8px（原来是 4px） */
+main .gsc-comment-box:not(.gsc-comment-box-is-reply),
+main .gsc-comment-box-write,
+main .gsc-comment-box-textarea {
+    border-radius: 8px;
+}
+
+/* 占位符原本硬编码 #9ca3af，在深色底上偏亮 */
+input::placeholder,
+textarea::placeholder {
+    color: #8a8b8c;
+}
