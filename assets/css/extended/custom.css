@@ -210,14 +210,248 @@ html[data-theme="dark"] .md-content mark.search-hit {
     color: #fff;
 }
 
-/* ---------- 8. 窄屏 ---------- */
+/* ---------- 8. 明快插画风：渐变背景、彩色卡片与首页头图 ---------- */
+:root {
+    /* 各栏目主题色（浅色模式） */
+    --a-projects: #c85a12;
+    --a-tech: #1a7fb5;
+    --a-solutions: #7a3fd8;
+    --a-posts: #14806d;
+    --card-shadow: 0 2px 10px rgba(23, 43, 77, 0.06);
+    --hero-img: url("https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Bright%20flat%20vector%20illustration%20of%20a%20cheerful%20cartoon%20potato%20character%20wearing%20safety%20goggles%20and%20a%20lab%20coat%2C%20holding%20a%20circuit%20board%2C%20surrounded%20by%20floating%20microchips%2C%20Wi-Fi%20signal%20arcs%20and%20code%20brackets%2C%20colorful%20orange%20teal%20and%20purple%20gradient%20background%2C%20clean%20modern%20flat%20design%2C%20soft%20shadows%2C%20wide%20banner%20composition%20with%20empty%20space%20on%20the%20left%2C%20no%20text&image_size=landscape_16_9");
+}
+
+html[data-theme="dark"] {
+    --a-projects: #ffa76a;
+    --a-tech: #6fc9f5;
+    --a-solutions: #b795ff;
+    --a-posts: #5fd6b8;
+    --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* 页面背景：四角彩色晕染，衬色但不压正文 */
+body,
+body.list {
+    background-color: #fbfcff;
+    background-image:
+        radial-gradient(760px 420px at 6% -8%, rgba(255, 148, 74, 0.20), transparent 62%),
+        radial-gradient(700px 400px at 98% 0%, rgba(47, 184, 245, 0.20), transparent 62%),
+        radial-gradient(680px 480px at 48% -14%, rgba(165, 107, 255, 0.14), transparent 66%);
+    background-repeat: no-repeat;
+}
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] body.list {
+    background-color: #15171c;
+    background-image:
+        radial-gradient(760px 420px at 6% -8%, rgba(255, 138, 61, 0.15), transparent 62%),
+        radial-gradient(700px 400px at 98% 0%, rgba(47, 184, 245, 0.15), transparent 62%),
+        radial-gradient(680px 480px at 48% -14%, rgba(165, 107, 255, 0.13), transparent 66%);
+}
+
+/* 顶栏底部一条彩色分隔线 */
+.header::after {
+    content: "";
+    display: block;
+    height: 2px;
+    background: linear-gradient(90deg, #ff8a3d, #2fb8f5 48%, #a56bff);
+    opacity: 0.5;
+}
+
+/* 首页头图：右侧插画 + 一层由左向右渐隐的遮罩，保证左侧文字可读 */
+.home-info {
+    position: relative;
+    padding: 34px 32px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+    background-color: #fff;
+    background-image: var(--hero-img), linear-gradient(135deg, #ffe7d3, #d9f1ff 55%, #ece2ff);
+    background-repeat: no-repeat;
+    background-size: cover, cover;
+    background-position: center, center;
+    box-shadow: 0 12px 32px rgba(30, 60, 120, 0.10);
+}
+
+.home-info::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg,
+            rgba(255, 255, 255, 0.97) 0%,
+            rgba(255, 255, 255, 0.9) 40%,
+            rgba(255, 255, 255, 0.35) 72%,
+            rgba(255, 255, 255, 0) 100%);
+    /* 遮罩只是视觉层，不能挡住里面的链接 */
+    pointer-events: none;
+}
+
+.home-info > * {
+    position: relative;
+}
+
+html[data-theme="dark"] .home-info {
+    background-color: #1b1e24;
+    background-image: var(--hero-img), linear-gradient(135deg, #2a1f19, #16242e 55%, #241d33);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme="dark"] .home-info::before {
+    background: linear-gradient(100deg,
+            rgba(21, 23, 28, 0.97) 0%,
+            rgba(21, 23, 28, 0.9) 40%,
+            rgba(21, 23, 28, 0.45) 72%,
+            rgba(21, 23, 28, 0.08) 100%);
+}
+
+/* 头图里的栏目入口做成彩色胶囊 */
+.home-info .entry-content ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 14px 0 0;
+    padding-inline-start: 0;
+    list-style: none;
+}
+
+.home-info .entry-content li {
+    margin: 0;
+}
+
+.home-info .entry-content li a {
+    display: inline-block;
+    padding: 5px 14px;
+    border: 1px solid color-mix(in srgb, var(--pill, var(--a-tech)) 35%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--pill, var(--a-tech)) 14%, transparent);
+    color: var(--pill, var(--a-tech));
+    font-size: 15px;
+    text-decoration: none;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.home-info .entry-content li a:hover {
+    transform: translateY(-1px);
+    background: color-mix(in srgb, var(--pill, var(--a-tech)) 24%, transparent);
+}
+
+.home-info .entry-content li:nth-child(1) a {
+    --pill: var(--a-posts);
+}
+
+.home-info .entry-content li:nth-child(2) a {
+    --pill: var(--a-tech);
+}
+
+.home-info .entry-content li:nth-child(3) a {
+    --pill: var(--a-projects);
+}
+
+.home-info .entry-content li:nth-child(4) a {
+    --pill: var(--a-solutions);
+}
+
+/* 列表卡片：顶部彩色条 + 悬停抬起 */
+.post-entry {
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.post-entry::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--card-accent, #2fb8f5), transparent 85%);
+}
+
+.post-entry:hover {
+    transform: translateY(-2px);
+    border-color: var(--card-accent, var(--border));
+    box-shadow: 0 8px 22px rgba(23, 43, 77, 0.10);
+}
+
+html[data-theme="dark"] .post-entry:hover {
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+}
+
+/* 按所属栏目取色：靠链接路径判断，不需要改主题模板 */
+.post-entry:has(a[href*="/projects/"]),
+.searchResults li:has(a[href*="/projects/"]) {
+    --card-accent: var(--a-projects);
+}
+
+.post-entry:has(a[href*="/tech-notes/"]),
+.searchResults li:has(a[href*="/tech-notes/"]) {
+    --card-accent: var(--a-tech);
+}
+
+.post-entry:has(a[href*="/solutions/"]),
+.searchResults li:has(a[href*="/solutions/"]) {
+    --card-accent: var(--a-solutions);
+}
+
+.post-entry:has(a[href*="/posts/"]),
+.searchResults li:has(a[href*="/posts/"]) {
+    --card-accent: var(--a-posts);
+}
+
+/* 搜索结果里的栏目标签跟着栏目配色 */
+.searchResults .entry-section {
+    color: var(--card-accent, var(--secondary));
+    background: color-mix(in srgb, var(--card-accent, var(--secondary)) 14%, transparent);
+    border-color: color-mix(in srgb, var(--card-accent, var(--secondary)) 38%, transparent);
+}
+
+/* 标题下补一道渐变短线 */
+.post-title::after,
+.page-header h1::after {
+    content: "";
+    display: block;
+    width: 76px;
+    height: 4px;
+    margin-top: 14px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #ff8a3d, #2fb8f5 55%, #a56bff);
+}
+
+/* 目录做成卡片 */
+.toc {
+    padding: 12px 18px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--code-bg);
+}
+
+/* ---------- 9. 窄屏 ---------- */
 @media (max-width: 700px) {
     .post-title {
         font-size: 24px;
     }
 
+
     .md-content h2 {
         font-size: 22px;
+    }
+
+    /* 窄屏时插画铺满整张卡片，遮罩要更实，文字才读得清 */
+    .home-info {
+        padding: 26px 20px;
+    }
+
+    .home-info::before {
+        background: linear-gradient(180deg,
+                rgba(255, 255, 255, 0.97) 0%,
+                rgba(255, 255, 255, 0.93) 55%,
+                rgba(255, 255, 255, 0.85) 100%);
+    }
+
+    html[data-theme="dark"] .home-info::before {
+        background: linear-gradient(180deg,
+                rgba(21, 23, 28, 0.97) 0%,
+                rgba(21, 23, 28, 0.94) 55%,
+                rgba(21, 23, 28, 0.86) 100%);
     }
 
     .md-content h3 {
