@@ -1246,3 +1246,26 @@ html[data-theme="dark"] .up-status-err {
         padding: 14px;
     }
 }
+
+/* ---------- 20. 窄屏导航：换行，别出现横向滚动条 ---------- */
+/* 主题的 .menu 是 white-space: nowrap + overflow-x: auto，菜单项一多，窄屏下就变成
+   一条要横向滑的条带，后面几项直接藏在视口外（<=600px 时最后四项都看不见）。
+   这里让它换行：所有项都能直接看到，代价是顶栏在手机上多占一行。
+   顺手把行高压到 44px（主题继承的 --header-height 是 60px，换行后两行就是 120px，
+   手机上太占地方），44px 也还够手指点。 */
+@media (max-width: 800px) {
+    #menu.menu {
+        /* 菜单独占一行，才有一整行宽度可以拿来换行 */
+        flex: 1 1 100%;
+        flex-wrap: wrap;
+        overflow-x: visible;
+        /* 用 gap 统一间距：换行后 margin-inline-start 会让每行第一个多缩进一格 */
+        column-gap: var(--gap);
+        row-gap: 0;
+        line-height: 44px;
+    }
+
+    #menu.menu li + li {
+        margin-inline-start: 0;
+    }
+}
