@@ -242,6 +242,18 @@
             return TEXT_EXTS.indexOf(ext) !== -1;
         }
 
+        // 纯文本按原文排版：整篇包进代码块。这样换行、缩进都按原样保留，
+        // 命令行里的 --global 也不会被 Markdown 的排版器改成 –global
+        function plainTextNote(text) {
+            // 原文里本来就有反引号时，围栏要更长才不会被提前闭合
+            var runs = text.match(/`{3,}/g) || [];
+            var len = 3;
+            runs.forEach(function (run) { if (run.length >= len) len = run.length + 1; });
+            var fence = new Array(len + 1).join('`');
+            var body = text.replace(/\r\n/g, '\n').replace(/\s+$/, '');
+            return fence + 'text\n' + body + '\n' + fence + '\n';
+        }
+
         // 按文本读（FileReader 默认 UTF-8），改完再自己编码回 base64
         function readText(file) {
             return new Promise(function (resolve, reject) {
@@ -562,7 +574,10 @@
                     path: plan.notePath,
                     read: function () {
                         return readText(item.file).then(function (raw) {
-                            return utf8ToBase64(ensureFrontMatter(raw, plan.title));
+                            // .md 是作者自己写的 Markdown，原样放进去；
+                            // .txt 是纯文本，按原文整篇排版
+                            var body = plan.ext === '.txt' ? plainTextNote(raw) : raw;
+                            return utf8ToBase64(ensureFrontMatter(body, plan.title));
                         });
                     }
                 }];
