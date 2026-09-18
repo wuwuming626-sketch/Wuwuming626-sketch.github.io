@@ -1,0 +1,811 @@
+1、git命令
+
+git status
+git diff
+git branch
+git checkout
+
+2、拉代码
+ssh-keygen -t rsa -C"meiqing.wu@fanvil.com"
+
+git config --global user.email “meiqing.wu@fanvil.com”
+git config --global user.name “meiqing.wu”
+
+repo init --repo-url=ssh://git@172.16.1.8/Terry/repo-mir.git -u ssh://meiqing.wu@172.16.1.28:29418/sigmastar/manifests.git -m FV_ssd21x_develop.xml
+
+repo init --repo-url=ssh://git@172.16.1.8/Terry/repo-mir.git -u ssh://meiqing.wu@172.16.1.8/sigmastar/manifests.git -m  FV_mobile_wifi_release.xml
+
+repo init --repo-url=ssh://git@172.16.1.8/Terry/repo-mir.git -u ssh://git@172.16.1.8/sigmastar/manifests.git -m  FV_mobile_wifi_release.xml 
+
+repo init --repo-url=https://mirrors.tuna.tsinghua.edu.cn/git/git-repo --repo-branch=v2.56 -u ssh://git@172.16.1.8/sigmastar/manifests.git -m  FV_ssd21x_w610h_release.xml
+
+repo init --repo-url=https://mirrors.tuna.tsinghua.edu.cn/git/git-repo --repo-branch=v2.56 -u ssh://git@172.16.1.8/sigmastar/manifests.git -m  FV_mobile_wifi_release.xml
+
+repo init --repo-url=ssh://git@172.16.1.8/Terry/repo-mir.git -u ssh://git@172.16.1.8/sigmastar/manifests.git -m  FV_ssd21x_w610h_release.xml
+
+repo init --repo-url=ssh://git@172.16.1.8/Terry/repo-mir.git -u git@172.16.1.8:fanvil-sdk/manifests.git -b rk3506g -m rk3506g_dev_cicd.xml --reference=/home/data3/fanvil/chenshaobin/rk3506-gerrit-mirror-py3
+3、切换分支、同步代码编译
+
+repo forall -c "git status"
+repo forall -c "git checkout ." && repo forall -c "git clean -df"
+
+repo init -m rk3506g_i503x_cicd.xml
+
+repo init -m rk3506g_dev_cicd.xml
+
+repo sync -c --no-tags -j12 --force-sync
+
+./build.sh -p w620w -t pkg-only xapp_resource
+./build.sh -p w620w -t pkg-only mscore
+./build.sh -p w620w -t pkg mscore
+
+同步完代码，哪里报错就编哪里
+./build.sh -p w620w -t pkg-only platform
+
+
+./build.sh -p w620w -t pkg-only x_app
+
+./build.sh -p w620w -t app
+./build.sh -p w620w -t project
+
+./build.sh -p w620w -t packet --withadb
+
+./build.sh -p w610h -u linkvil -t all
+
+4、编版本
+./build.sh -p w620w -v aaaa -t packet
+
+./build.sh -p w610h -u linkvil -t all
+./autoBuild.sh "w610w:linkvil:release:2.14.2.2.1"	
+
+5、提交代码
+git cherry-pick
+git cherry-pick 9445663b0
+
+git commit --amend
+
+git add .
+git commit --amend
+git push -u fv HEAD:refs/for/rk3506g_dev_cicd
+
+git add bluetooth/src/bt_handsfree.c
+
+git commit -m "[WUMEIQING] [T104526] [BUG] [W61x] [BT]: 修复W61x长按耳机键切换声音通道失败"
+git commit -m "[WUMEIQING] [T105179] [BUG] [W620X] [BT]: 修复W620X连接蓝牙耳机，耳机振铃时调节音量无效，DH301D耳机调整音量也无效"
+git commit -m "[WUMEIQING] [T106310] [BUG] [W620W] : 修改web端添加相同门禁号码翻译错误"
+git commit -m "[WUMEIQING] [T114095] [BUG] [W620H] : 修改W620H和DH301D连接后声音很小问题"
+
+git commit -m "[WUMEIQING] [T108849] [BUG] [A330] : Modify the handle hook event to serve as a wake-up event."
+
+git commit -m "[WUMEIQING] : Stop tracking wifi.load"
+
+
+git push sigmastar HEAD:refs/for/MOBILE_WIFI_RELEASE
+git push sigmastar HEAD:refs/for/MOBILE_W610H_RELEASE_CICD
+git push fv HEAD:refs/for/rk3506g_dev_cicd
+git push adc HEAD:refs/for/master
+
+repo forall -c "rm -rf .git/hooks"
+repo forall -c "mkdir -p `git rev-parse --git-dir`/hooks/ && curl -Lo `git rev-parse --git-dir`/hooks/commit-msg http://172.16.1.28:8081/tools/hooks/commit-msg && chmod +x `git rev-parse --git-dir`/hooks/commit-msg"
+git commit --amend
+
+git reset bec3e86ed9a78eed027ce81f556970caeed62425 --soft
+git push -u fv HEAD:refs/for/rk3506g_i503x_dev_cicd
+git push  fv HEAD:refs/for/rk3506g_i503x_dev_cicd
+
+git rev-parse --show-toplevel
+
+
+git fetch fv refs/changes/02/24402/1 && git cherry-pick FETCH_HEAD
+git fetch fv refs/changes/07/23907/1 && git cherry-pick FETCH_HEAD
+
+
+需要带上某个修改：
+
+git fetch fv refs/changes/33/23833/22 && git cherry-pick FETCH_HEAD
+git fetch fv refs/changes/90/26590/3 && git cherry-pick FETCH_HEAD
+
+6、烧录
+setenv ipaddr 172.20.2.122
+setenv sever ip 172.20.2.140
+
+docker ps
+docker exec -u $(id -u):$(id -g) -it rk3506-builder /bin/bash
+
+./build.sh -p w620w -t all -u fanvil -v T0.0.1
+
+./build.sh -p w620w -t firmware
+./build.sh -p w620w -t kernel -u fanvil -v T0.0.1  
+
+./build.sh -p w620w -t app
+./build.sh -p w620w -t pkg-only xapp_resource
+./build.sh -p w620w -t pkg-only x_app
+./build.sh -p w620w -t pkg-only platform
+./build.sh -p w620w -t pkg-only vcore
+./build.sh -p w620w -t packet --withadb
+
+7、ADB导出
+adb push test.ko /userdata
+
+adb pull /tmp/btsnoop_hci.log C:\Users\fanvil0003\my_btsnoop.log
+adb pull /tmp/btsnoop_hci.log ./
+
+adb抓日志：
+adb shell logcat
+导出日志：
+adb shell logcat -v time > logcat_with_time.txt
+清理日志：
+adb shell logcat -c
+
+8、抓包
+hcidump -w w620w_Bzc_btlog.cfa &
+hcidump -w v62w_btlog.cfa &
+
+hcidump -w DH301D_btlog.cfa &
+
+adb pull /userdata/log/w620w44_btlog.cfa ./
+adb pull /userdata/log/w620w_2cl_btlog.cfa  E:\bt\
+
+D:\ADB\adb.exe pull /userdata/log/w620w45_btlog.cfa E:\bt\
+
+D:\ADB\adb.exe pull /userdata/log/w620w_2cl_btlog.cfa E:\bt\
+
+D:\ADB\adb.exe pull /tmp/btsnoop_hci.log E:\bt\
+
+hcidump -w w620w_2clzc_btlog.cfa &
+tftp -r w620w1_btlog.cfa -p 172.18.55.199
+
+9、查找
+grep -rn --include="*.h" --include="*.c" "UpdateEngine" .
+
+grep -rn --include="*.h" --include="*.c" --exclude-dir="xapp_2" "agent_pairing_request_process" .
+
+10、v6x编译指令
+./unifirmware_build.sh -p v6x -t all
+./build.sh -p v62w -t all
+./build.sh -p w610w -t all
+./build.sh -p v65 -t all
+
+dexec ssd212-ssd202-builder
+
+setenv ipaddr 172.18.55.29
+setenv serverip 172.18.55.180
+saveenv
+
+
+11、放弃某个文件更改
+ ateTestBluetooth.c
+
+12、在140服务器上拉取代码
+
+v62：
+eval `keychain --eval  ~/.ssh/id_rsa`
+repo init --repo-url=https://mirrors.ustc.edu.cn/aosp/git-repo -u ssh://meiqing.wu@172.16.1.28:29418/sigmastar/manifests.git -m FV_RELEASE_CICD_V6X.xml
+
+v65：
+eval `keychain --eval  ~/.ssh/id_rsa`
+export REPO_URL='https://mirrors.ustc.edu.cn/aosp/git-repo'
+
+repo init --repo-url=${REPO_URL} -u ssh://meiqing.wu@172.16.1.28:29418/sigmastar/manifests.git -m FV_20X_RELEASE_CICD.xml
+
+
+
+
+--------------------------------------------Android---------------------------------------------------
+
+对 repo 管理的所有 Git 仓库，强制删除所有未跟踪的文件和目录：
+repo forall -c git clean -fd
+执行效果：
+丢弃所有已跟踪文件的修改（工作区的改动消失），清空暂存区（所有 git add 的文件被取消），指向同一个提交（不会改变当前提交，因为目标还是 HEAD）：
+repo forall -c git reset HEAD  --hard
+
+1、同步更新代码
+eval `keychain --eval  ~/.ssh/id_rsa`
+repo sync -cd -j16
+repo sync -c --no-tags -j12 --force-sync
+
+15：
+
+docker exec -u $(id -u):$(id -g) -it aosp15-builder /bin/bash
+clean_env
+source build/envsetup.sh
+set_vendor_product A330 fanvil
+lunch rk3576_u-ap4a-userdebug
+./full_build.sh -p A330 -c fanvil
+mmm /vendor/fanvil/prebuilt/apks/SystemUpdate/
+
+14：
+lunch rk3576_u-userdebug
+./build.sh -UKAup
+
+15拉代码，用工具：
+/disk4/android-tools/sync_rk_android15.sh
+
+
+编译后缺少key：
+cp /home/liutianyu/Downloads/keys.7z ./
+echo "fanvil" | 7z x ./keys.7z
+
+14
+docker exec -u $(id -u):$(id -g) -it aosp14-builder /bin/bash
+dexec aosp14-builder
+clean_env
+source build/envsetup.sh
+set_vendor_product A330 fanvil
+lunch rk3576_u-userdebug
+./full_build.sh -p A330 -c fanvil
+
+
+clean_env
+source build/envsetup.sh
+set_vendor_product A330i generic
+lunch rk3576_u-userdebug
+./full_build.sh -p A330i -c generic
+
+
+v67编译
+dexec aosp9-builder
+clean_env
+source build/envsetup.sh
+set_vendor_product V67 fanvil
+lunch 13
+
+make update-api -j8
+
+cd kernel
+make distclean
+make ARCH=arm64 v67_defconfig
+make ARCH=arm64 px30-evb-ddr3-v10-avb-v67.img -j8
+
+cd u-boot
+make clean
+./make.sh px30 v67
+
+make
+
+
+X7a编译
+dexec aosp9-builder
+clean_env
+source build/envsetup.sh
+set_vendor_product X7A fanvil
+lunch 13
+
+make update-api -j8
+
+cd kernel
+make distclean
+make ARCH=arm64 x7a_defconfig
+make ARCH=arm64 px30-evb-ddr3-v10-avb-x7a.img -j8
+
+cd u-boot
+make clean
+./make.sh px30 x7a
+
+make
+
+J308P编译
+source build/envsetup.sh 
+set_vendor_product J308P vimcom
+lunch 13
+
+X7A编译
+source build/envsetup.sh 
+set_vendor_product X7A guoyou
+lunch 13
+
+无线ADB 
+adb connect 172.18.55.193（设备ip）
+
+
+2、编译
+docker ps
+docker exec -u $(id -u):$(id -g) -it aosp14-builder /bin/bash
+docker exec -u $(id -u):$(id -g) -it aosp15-builder /bin/bash
+docker exec -u $(id -u):$(id -g) -it ssd212-ssd202-builder /bin/bash
+
+./full_build.sh -p A330 -c fanvil 
+./full_build.sh -p A330 -c fanvil --aosp15
+
+logcat | grep RecoverySystem
+
+
+logcat | grep RKUpdateService
+单独编译kernel里面的文件：
+./vendor/fanvil/build/tools/compile.sh -p A330 -C fanvil -ak
+找到对应的文件所在的位置
+
+
+
+dmesg | grep update.service
+
+编译生成OTA版本,可直接使用full脚本编译，这样会带上升级包版本：
+./full_build.sh -p A330 -c fanvil
+docker exec -u $(id -u):$(id -g) -it aosp15-builder /bin/bash
+clean_env
+source build/envsetup.sh
+set_vendor_product A330 fanvil
+lunch rk3576_u-userdebug
+./vendor/fanvil/build/tools/compile.sh -p A330 -C fanvil -akuUOP 
+mmm vendor/fanvil/apps/FactoryTest/
+
+eval `keychain --eval  ~/.ssh/wmq`
+mkdir ~/version
+echo 0.0.0.0 > ~/version/version.0.0.0.0
+git am -k /disk3/aosp15_1/a/vendor/fanvil/build/aaaaaaaaa/*
+
+3、打包补丁、添加
+git format-patch --subject-prefix="" --no-numbered d1dc9cce3fcc5b57b84737545d2d753d68954e47..HEAD -o ./wmq14
+
+git am -k /disk3/aosp14_2/a/packages/modules/Connectivity/wmq14/*
+
+git apply --reject /disk3/aosp14_2/a/packages/modules/Connectivity/wmq14/0001-YONGCHUNYU-Feature-add-dns-settings.patch
+
+find . -name "*.rej" -type f
+
+git am --continue
+
+mv /disk3/aosp14_3/a/vendor/rockchip/common/apps/TrimeIME/Trime.apk  /disk3/aosp14_3/a/vendor/rockchip/common/apps/Trime/
+
+
+安装apk文件
+adb install path/to/your/app.apk
+
+adb install E:\wmq\ceshi\dingding.apk
+adb install E:\wmq\ceshi\app\dingding.apk
+
+adb install E:\wmq\ceshi\app\com.cisco.wx2.android_v44.7.0.89_2265.com.apk
+adb install E:\wmq\ceshi\app\com.microsoft.teams.apk
+adb install E:\wmq\ceshi\app\com.whatsapp_289.com.apk
+adb install E:\wmq\ceshi\zoom.apk
+adb install E:\wmq\ceshi\weixin8065android2960_0x28004137_arm64.apk
+adb install E:\wmq\ceshi\TencentMeeting_0300000000_3.39.1.432.publish.officialwebsite.apk
+adb install E:\wmq\ceshi\trime.apk
+adb install W:\aosp14_3\a\out\target\product\rk3576_u\system\app\SystemUpdate\SystemUpdate.apk
+
+导出文件
+adb pull /sdcard/Android/data/com.antutu.ABenchMark/files/.antutu E:\wmq\ceshi\antutu_results
+
+adb shell top
+adb shell "cat /proc/meminfo
+
+dumpsys meminfo com.vdroid.broadcast
+
+内存占用
+总：
+cat /proc/meminfo
+单个：
+dumpsys meminfo android.hardware.audio.service_64
+
+dumpsys meminfo com.alibaba.android.rimet
+dumpsys meminfo com.tencent.mm
+dumpsys meminfo com.tencent.wemeet.app
+dumpsys meminfo com.microsoft.teams
+dumpsys meminfo us.zoom.videomeetings
+dumpsys meminfo us.zoom.videomeetings:conf
+dumpsys meminfo com.cisco.wx2.android
+dumpsys meminfo com.vdroid.broadcast:VoIPService
+dumpsys meminfo android.hardware.audio.service_64
+
+dumpsys meminfo com.vdroid.broadcast
+
+
+查看温度（su进入root）
+cat /sys/class/thermal/thermal_zone*/temp
+cat /sys/class/thermal/thermal_zone*/temp | awk '{sum+=$1; count++} END {printf "平均温度: %.1f°C\n", sum/count/1000}'
+
+锁屏：
+adb shell input keyevent 26
+input keyevent POWER
+input keyevent 26
+
+搜索，过滤二进制文件：
+grep -rnw mixer_open_legacy --exclude-dir=out --exclude-dir=rockdev -I
+
+日志定位
+例如：
+11-18 19:18:55.806 1041 641 2658 E modules.primary.audio_hal: open pcm failed: cannot open device 0 for card 4: Too many open files,card number = 3
+
+grep -r "modules\.primary\.audio_hal" hardware/rockchip/audio/ --include="*.c" --include="*.cpp" --include="*.cc" --include="*.h"
+
+查看进程：
+ps -ef | grep audioserver
+
+
+ls -l /proc/632/fd | grep "/dev/snd/"
+
+ls -l /proc/644/fd | grep "/dev/snd/"
+ls -l /proc/3135/fd/
+
+adb logcat -d -v time -s TAG > logcat1_time_tag.txt
+adb logcat -v time > full_log.txt
+
+查看系统架构
+getprop ro.product.cpu.abi
+
+可打开的文件描述符上限
+ulimit -n
+统计进程打开的文件描述符总数
+ ls /proc/648/fd | wc -l
+
+ps -ef | grep audioserver
+两个进程：
+for pid in 648 679; do echo -e "\n========== Process $pid (audioserver) fd info =========="; echo "Total fd count: $(ls -l /proc/$pid/fd/ 2>/dev/null | wc -l)"; ls -l /proc/$pid/fd/ 2>/dev/null || echo "Process $pid not found or no permission"; done
+
+
+查看节点列表：
+ls -l /dev/snd/
+
+ logcat | grep -e "alsa_route"
+
+ps -A | grep audio
+
+内置app脚本：
+python3 update_apk.py Trime.apk bundled_persist-app
+
+
+adb push某个单独编译的文件：
+adb devices
+adb root
+adb remount
+adb reboot
+adb push "要push的路径" 替换文件路径
+adb push "W:\aosp14_3\a\kernel-6.1\drivers\input\adc_detect_switch\adc_detect_switch.ko" /vendor/lib/modules/
+
+adb push "" /system/app/PinyinIME/
+
+从电脑目录移动到服务器：
+scp -r "F:\wmq\xia\SystemUpdate" aosp14_3@172.18.1.140:/disk3/aosp14_3/a/vendor/fanvil/apps/
+/disk2/wumeiqing/android14/vendor/fanvil/apps
+
+scp -r "F:\wmq\aosp15\SystemUpdate" wumeiqing@172.18.1.140:/disk2/wumeiqing/android15/vendor/fanvil/apps/
+
+scp -r "F:\wmq\a330\65\SystemUpdate" wumeiqing@172.18.1.140:/disk2/wumeiqing/android14/vendor/fanvil/prebuilt/apks/SystemUpdate/
+
+scp -r "F:\wmq\a330\Android15\update\lib\librockchip_update_jni.so" wumeiqing@172.18.1.140:/disk2/wumeiqing/android15/vendor/fanvil/prebuilt/apks/SystemUpdate/lib/arm64-v8a
+
+scp -r "F:\wmq\pinyinIME\PinyinIME-7.1.tar.gz" wumeiqing@172.18.1.140:/disk2/wumeiqing/android15/vendor/fanvil/apps
+
+
+scp -r "PinyinIME" wumeiqing@172.18.1.140:/disk2/wumeiqing/android14/vendor/fanvil/apps/
+
+scp -r "屏幕黑屏" wumeiqing@172.18.1.140:/disk2/wumeiqing/android14/
+
+scp -r "PinyinIME.apk" wumeiqing@172.18.1.140:/disk2/wumeiqing/android14/vendor/fanvil/prebuilt/apks/PinyinIME/
+
+scp -r "无声" wumeiqing@172.18.1.140:/disk2/wumeiqing/android14/wmq/log/无声/
+
+scp -r "packet-2026-01-12-17-57-56.pcap" wumeiqing@172.18.1.140:/disk2/wumeiqing/android14/wmq/audio/
+
+截图并保存到电脑
+adb shell screencap -p /sdcard/screenshot.png
+adb pull /sdcard/screenshot.png "F:\wmq\screenshot.png"
+adb shell rm /sdcard/screenshot.png
+
+                                                                                                                                            
+
+解压：
+unzip RKUpdateService.apk -d RKUpdateService_extracted
+
+
+编译生成OTA版本：
+./vendor/fanvil/build/tools/compile.sh -p A330 -C fanvil -akuUOP
+
+
+adb push Generic.kl /system/usr/keylayout/
+
+
+
+拉取代码报错version和keys，需要
+mkdir ~/version
+echo 0.0.0.0 > ~/version/version.0.0.0.0
+
+cp /home/liutianyu/Downloads/keys.7z ./
+echo "fanvil" | 7z x ./keys.7z
+
+修改full脚本
+BUILD_COMMAND+=" -j 32"
+
+
+git config --global user.email “tianyu.liu@fanvil.com”
+git config --global user.name “tianyu.liu”
+
+git config --global user.email “meiqing.wu@fanvil.com”
+git config --global user.name “meiqing.wu”
+
+souce build/envsetup.sh
+set_vendor_product xxx xxx
+mmm xxx/xxx/xx
+
+单独编译ate
+source build/envsetup.sh
+set_vendor_product V67 fanvil
+lunch 13
+mmm vendor/fanvil/apps/FactoryTest/
+把out目录的system/app/FactoryTest 全部替换到设备里，重启就行。
+
+F:\wmq\ate>adb push ./FactoryTest /system/priv-app/
+
+adb push ./FactoryTest /system/priv-app/
+
+
+tinymix -D 4
+cat /proc/device-tree/__symbols__/sai4 2>/dev/null && echo "sai4 "
+ls -la /proc/device-tree/sai@2a640000/
+
+cat /proc/device-tree/sai@2a640000/rockchip,sai-rx-wait-time-ms 2>/dev/null
+cat /proc/device-tree/sai@2a640000/rockchip,sai-tx-wait-time-ms 2>/dev/null
+
+
+adb shell ps | grep update
+ls -lZ /system/app/SystemUpdate/SystemUpdate.apk
+pm list packages | grep -i update
+
+grep -r "RKUpdateService" device/rockchip/ --include="*.mk"
+
+dumpsys | grep -A5 -B5 "RecoverySystem"
+
+
+pidof system_server
+cat /proc/885/attr/current
+ps -A | grep -E "(abfota|rockchip.update)"
+
+
+ls -lZ /system/app/SystemUpdate/SystemUpdate.apk
+
+service list | grep recovery
+
+
+px30北京账号
+1、先切换自己的账号
+修改.ssh中的config
+
+2、
+eval `keychain --eval  ~/.ssh/wmq`
+eval `keychain --eval  ~/.ssh/id_rsa`
+id_rsa
+
+
+3
+source build/envsetup.sh
+set_vendor_product J308P generic
+mmm hardware/rockchip/audio/tinyalsa_hal/
+
+串口切换loader模式
+reboot loader
+
+导出日志
+adb debugreport .
+
+查看aex返回的内存：
+aexnc hw info "memTotal"
+aexnc hw info "memFree"
+aexnc hw info "memAvail"
+
+
+编译带版本号
+dexec beken "make clean && make bk7258 PROJECT=qemu_voip PRODUCT=H2E VERSION=0.1.0"
+dexec beken "make clean && make bk7258 PROJECT=qemu_voip PRODUCT=V50E VERSION=T0.1.1"
+dexec beken "make clean && make bk7258 PROJECT=qemu_voip PRODUCT=J600P-V2 VERSION=0.1.0"
+
+dexec beken "make clean && make bk7258 PROJECT=qemu_voip TARGET=board PRODUCT=RM08"
+
+make clean && make bk7258 PROJECT=qemu_voip PRODUCT=PA1 PRODUCT_VSOT_SUPPORT=1 VERSION=T0.0.1
+
+推送：
+git push fv HEAD:refs/for/master
+git push fv HEAD:refs/for/RELEASE_CICD_MASTER
+
+git commit --amend --no-edit
+
+make clean && dexec beken make bk7258 PROJECT=ip_cam
+
+
+
+ffplay rtsp://172.18.55.207:7070
+ffplay rtsp://172.18.53.66:7070
+ffplay rtsp://172.18.53.171:7070
+ffplay  rtsp://172.18.55.160:7070
+
+ap1:RTP_PORT:I(7467):RTSP H264  rtsp://172.18.53.171:7070
+ap1:RTP_PORT:I(7467):RTSP MJPEG rtsp://172.18.53.171:7071
+
+
+
+git reset --hard 2fcf8a71f
+
+uvc编译：
+make clean && make bk7258 PROJECT=qemu_voip PRODUCT=MB12-V2 TARGET=board PRODUCT_VSOT_SUPPORT=1 VERSION=T0.0.1
+
+
+
+
+ap_cmd cam_test start
+
+
+ap_cmd cam_test stop
+
+make bk7258 PROJECT=qemu_voip PRODUCT=H2E VERSION=0.0.0.0 BUILD_VERSION=debug
+
+make clean && make bk7258 PROJECT=qemu_voip PRODUCT=i12-v2 TARGET=board PRODUCT_VSOT_SUPPORT=1 VERSION=T0.0.1 BUILD_VERSION=debug
+
+ make clean && make bk7258 PROJECT=qemu_voip PRODUCT=MB12-v2 TARGET=board PRODUCT_VSOT_SUPPORT=1 VERSION=T0.0.1 BUILD_VERSION=debug
+
+dexec beken "make clean && make bk7258 PROJECT=qemu_voip PRODUCT=MB12-v2 TARGET=board PRODUCT_VSOT_SUPPORT=1 VERSION=T0.0.1 BUILD_VERSION=debug"
+
+dexec beken "cd bk_avdk_smp && make clean && make bk7258 PROJECT=qemu_voip PRODUCT=MB12-v2 TARGET=board PRODUCT_VSOT_SUPPORT=1 VERSION=T0.0.1 BUILD_VERSION=debug"
+
+dexec beken "make clean && make bk7258 PROJECT=qemu_voip PRODUCT=i12-v2 TARGET=board PRODUCT_VSOT_SUPPORT=1 VERSION=T0.0.1 BUILD_VERSION=debug"
+
+dexec beken "make clean && make bk7258 PROJECT=qemu_voip PRODUCT=i602 VERSION=0.1.0"
+
+dexec beken "make clean && make bk7258 PROJECT=ip_cam"
+
+
+开关功放：
+ap_cmd gpio_led 49 0
+ap_cmd gpio_led 21 1
+
+ap_cmd gpio output_high 24
+
+
+
+
+
+ap_cmd gpio output_low 24
+ap_cmd gpio output 21 none
+
+ap_cmd gpio input_get 21
+
+ap_cmd gpio_map devs 24 0
+ap_cmd gpio output 24 pull_up
+ap_cmd gpio output_high 24
+
+
+ap_cmd ate_done set 1
+
+
+
+调试增益：
+ap_cmd ob_gain show
+ap_cmd ob_dig_gain show
+
+手柄 MIC：
+ap_cmd ob_gain mic_hd 2
+ap_cmd ob_gain mic_hd 6
+ap_cmd ob_gain mic_hd 8
+ap_cmd ob_gain mic_hd 12
+
+Linein：
+ap_cmd ob_gain mic_linein 2
+ap_cmd ob_gain mic_linein 8
+ap_cmd ob_gain mic_linein 12
+
+ap_cmd mac -w eth 00D848012EA2
+ap_cmd mac -w bt 00D848012EA2
+ap_cmd key ACCEPT
+
+MB12摄像头：
+ap_cmd rtc now
+ap_cmd cam_test start
+ffplay rtsp://172.18.55.254:7070
+ffplay rtsp://172.18.55.144:7070
+
+
+
+ap_cmd mac -w sn 123456
+ap_cmd mac -w eth 000102030405
+ap_cmd mac -w wifi 000102030405
+ap_cmd mac -w bt 000102030405
+
+ap_cmd mac -w wifi 00000000001
+ap_cmd mac -w wifi 000102030405
+ap_cmd mac -w bt 000102030405
+
+mb12屏幕测试：
+ap_cmd lcdtest black
+ap_cmd lcdtest clear
+ap_cmd lcdtest blink
+ap_cmd lcdtest blink 1000
+ap_cmd lcdtest stop
+
+ap_cmd uvc_start
+ap_cmd uvc_stop
+
+
+ap_cmd cam_test start dvp  
+ap_cmd cam_test start uvc
+ap_cmd cam_test stop
+ap_cmd cam_test status
+ap_cmd cam_test start testpat
+ap_cmd cam_test start testpat_enc
+ap_cmd cam_test start testpat_h264
+ap_cmd cam_test start dvp_h264
+ap_cmd cam_test
+ap_cmd cam_test start dvp_mjpeg
+
+
+ap_cmd cam_test start dvp
+ap_cmd cam_test status
+ffplay rtsp://172.18.55.152:7070
+
+PAI编译
+make clean && make bk7258 PROJECT=qemu_voip PRODUCT=PA1 PRODUCT_VSOT_SUPPORT=1 VERSION=T0.0.1
+
+
+ap_cmd blescan start
+ap_cmd blescan stop
+ap_cmd blescan status
+
+
+在仓库根目录 `/home/disk2/wumeiqing/bk_ATE` 执行，且本机要能跑 `dexec beken`。
+
+编完全部 12 款（默认失败就停）：
+cd /home/disk2/wumeiqing/bk_ATE
+./tools/build_all_qemu_voip_products.sh
+
+**只编几款：**
+./tools/build_all_qemu_voip_products.sh --only PA1,H2E
+
+
+**失败后继续后面机型：**
+./tools/build_all_qemu_voip_products.sh --keep-going
+
+
+**看帮助：**
+./tools/build_all_qemu_voip_products.sh --help
+
+**产物：** 每次运行会建目录  
+`tools/build_all_qemu_voip_products.out/<时间戳>/`  
+里面有 `summary.txt`、各机型 `.log`，成功的话还有 `<sku>/all-app.bin`。
+
+
+ap_cmd log 1 4 0 1
+ap_cmd modlog CHERRY_USB on
+ap_cmd modlog usb_dpdn on
+ap_cmd modlog Fatfs on
+
+log 1 4 0 1
+modlog CHERRY_USB on
+
+
+U盘挂载
+ap_cmd ls /mnt/udisk
+
+ap_cmd usb_dpdn flag
+ap_cmd usb_dpdn status
+ap_cmd usb_dpdn poll 100 50
+
+ap_cmd gpio output 20 pull_up
+ap_cmd gpio output_high 20
+ap_cmd gpio output_low 20
+
+
+
+ap_cmd usb_dpdn en 0
+ap_cmd usb_dpdn status
+ap_cmd usb_dpdn en 1
+ap_cmd usb_dpdn status
+ap_cmd usb_dpdn en 0
+ap_cmd usb_dpdn en 1
+ap_cmd usb_dpdn en 0
+ap_cmd usb_dpdn en 1
+
+
+
+ap_cmd arggpio -i 21 -g value
+ap_cmd arggpio -i 20 -g value
+
+ap_cmd gpio input 21 pull_up
+ap_cmd gpio input_get 21
+
+ap_cmd lcdtune                    # 1. 能看到帮助 → 确认新固件在跑
+ap_cmd lcdtune reg A5             # 2. 强制所有点全亮（绕过 RAM 内容，最关键的判决实验）
+ap_cmd lcdtune reg A4             # 3. 恢复正常显示
+
+ap_cmd lcdtune v0 6
+ap_cmd lcdtune ev 55
+ap_cmd lcdtune reg F8 00
+ap_cmd lcdtune reg A5
+
+
