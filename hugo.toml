@@ -48,6 +48,16 @@ reactionsEnabled = '1'
 inputPosition = 'top'
 lang = 'zh-CN'
 
+# 文件上传（/upload/ 页面用）：文件会提交到仓库的 static/downloads/ 下，
+# push 后 Actions 自动构建，一两分钟就能在 /downloads/ 里看到。
+# 上传页不进导航，也不让搜索引擎收录。
+[params.upload]
+repo = 'wuwuming626-sketch/Wuwuming626-sketch.github.io'
+branch = 'main'
+dir = 'static/downloads'
+# 单文件上限（MB）。GitHub 硬限制是 100MB，这里留足余量；更大的文件请走 GitHub Releases
+maxSizeMB = 25
+
 [params.homeInfoParams]
 Title = "欢迎来到土豆教主的逆袭之路"
 Content = """
@@ -86,19 +96,24 @@ url = "/solutions/"
 weight = 5
 
 [[menu.main]]
+name = "下载"
+url = "/downloads/"
+weight = 6
+
+[[menu.main]]
 name = "搜索"
 url = "/search/"
-weight = 6
+weight = 7
 
 [[menu.main]]
 name = "标签"
 url = "/tags/"
-weight = 7
+weight = 8
 
 [[menu.main]]
 name = "归档"
 url = "/archives/"
-weight = 8
+weight = 9
 
 # 相关文章：先按标签匹配，再按系列匹配（同栏目兜底在模板里做）
 [related]

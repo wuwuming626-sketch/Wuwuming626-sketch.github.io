@@ -1,0 +1,9 @@
+{{- /* Head custom content area start */ -}}
+{{- /* 站点自定义 head 内容，会出现在每个页面的 <head> 里 */ -}}
+
+{{- /* 上传页是自用入口，别让搜索引擎收录 */ -}}
+{{- if eq .Layout "upload" }}
+<meta name="robots" content="noindex, nofollow">
+{{- end }}
+
+{{- /* Head custom content area end */ -}}

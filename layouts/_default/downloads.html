@@ -1,0 +1,82 @@
+{{- define "main" }}
+
+<header class="page-header">
+    <h1>{{ .Title }}</h1>
+    {{- with .Description }}
+    <div class="post-description">{{ . }}</div>
+    {{- end }}
+</header>
+
+{{- $dir := site.Params.upload.dir | default "static/downloads" }}
+{{- $entries := slice }}
+{{- $res := try (readDir $dir) }}
+{{- if not $res.Err }}
+{{- $entries = $res.Value }}
+{{- end }}
+
+{{- /* 跳过子目录和 .gitkeep 这类隐藏文件 */ -}}
+{{- $files := slice }}
+{{- range $entries }}
+{{- if and (not .IsDir) (not (hasPrefix .Name ".")) }}
+{{- $files = $files | append . }}
+{{- end }}
+{{- end }}
+{{- $files = sort $files "Name" "asc" }}
+
+{{- if $files }}
+<p class="dl-meta">共 {{ len $files }} 个文件</p>
+<div class="dl-list">
+    {{- range $files }}
+    {{- $ext := replace (lower (path.Ext .Name)) "." "" }}
+    {{- $base := .Name }}
+    {{- if $ext }}
+    {{- $base = strings.TrimSuffix (printf ".%s" $ext) .Name }}
+    {{- end }}
+
+    {{- /* 按扩展名归类，只影响徽标配色 */ -}}
+    {{- $kind := "file" }}
+    {{- if eq $ext "pdf" }}
+    {{- $kind = "pdf" }}
+    {{- else if in (slice "zip" "7z" "rar" "tar" "gz" "bz2" "xz") $ext }}
+    {{- $kind = "archive" }}
+    {{- else if in (slice "png" "jpg" "jpeg" "gif" "webp" "svg" "bmp" "ico") $ext }}
+    {{- $kind = "image" }}
+    {{- else if in (slice "c" "h" "cpp" "hpp" "cc" "py" "js" "ts" "sh" "bat" "ps1" "patch" "diff" "json" "toml" "yaml" "yml" "xml" "html" "css") $ext }}
+    {{- $kind = "code" }}
+    {{- else if in (slice "md" "txt" "doc" "docx" "xls" "xlsx" "ppt" "pptx" "csv") $ext }}
+    {{- $kind = "doc" }}
+    {{- end }}
+
+    {{- $b := .Size }}
+    {{- $size := "" }}
+    {{- if lt $b 1024 }}
+    {{- $size = printf "%d B" $b }}
+    {{- else if lt $b 1048576 }}
+    {{- $size = printf "%.1f KB" (div $b 1024.0) }}
+    {{- else }}
+    {{- $size = printf "%.1f MB" (div $b 1048576.0) }}
+    {{- end }}
+
+    <a class="dl-item" href="{{ printf "downloads/%s" .Name | relURL }}">
+        <span class="dl-kind dl-kind-{{ $kind }}">{{ if $ext }}{{ $ext }}{{ else }}file{{ end }}</span>
+        <span class="dl-body">
+            <span class="dl-name">{{ $base }}</span>
+            <span class="dl-sub">{{ $size }}</span>
+        </span>
+        <svg class="dl-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+    </a>
+    {{- end }}
+</div>
+{{- else }}
+<div class="dl-empty">
+    <p>下载区还是空的，一篇都没放。</p>
+    <p class="dl-empty-hint">把文件丢进仓库的 <code>{{ $dir }}/</code>，这里会自动列出来。</p>
+</div>
+{{- end }}
+
+{{- end }}{{/* end main */}}

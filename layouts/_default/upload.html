@@ -1,0 +1,537 @@
+{{- define "main" }}
+
+{{- $u := site.Params.upload }}
+
+<header class="page-header">
+    <h1>{{ .Title }}</h1>
+</header>
+
+{{- if not $u.repo }}
+<p class="up-broken">没有配置 <code>[params.upload]</code>，这个页面用不了。</p>
+{{- else }}
+
+<div class="up-page"
+     data-repo="{{ $u.repo }}"
+     data-branch="{{ $u.branch | default "main" }}"
+     data-dir="{{ $u.dir | default "static/downloads" }}"
+     data-max="{{ $u.maxSizeMB | default 25 }}"
+     data-site="{{ site.BaseURL }}">
+
+    <p class="up-note">
+        这是给自己用的上传入口，没有放进导航。文件会直接提交进仓库的
+        <code>{{ $u.dir | default "static/downloads" }}</code>，GitHub Actions 随后重新构建，
+        一两分钟后就能在 <a href="{{ "downloads/" | relURL }}">下载区</a> 看到。
+    </p>
+
+    <section class="up-card">
+        <h2>1 · 连接 GitHub</h2>
+        <div id="up-auth-box">
+            <div class="up-row">
+                <input type="password" id="up-token" class="up-input" autocomplete="off" spellcheck="false"
+                    placeholder="粘贴 GitHub 令牌（github_pat_ 或 ghp_ 开头）">
+                <button type="button" class="up-btn" id="up-save">保存并验证</button>
+            </div>
+            <p class="up-hint">
+                令牌只存在你自己这台浏览器里（localStorage），除了 <code>api.github.com</code> 不会发给任何地方。
+                建议到 GitHub 建一个 <b>Fine-grained token</b>：只勾选这一个仓库，
+                权限只给 <b>Contents: Read and write</b>，再设个到期时间。
+            </p>
+        </div>
+        <div id="up-auth-status" class="up-status"></div>
+    </section>
+
+    <section class="up-card" id="up-pick-card" hidden>
+        <h2>2 · 选文件</h2>
+        <div class="up-drop" id="up-drop">
+            <input type="file" id="up-input" multiple hidden>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <p>把文件拖进来，或者点击选择</p>
+            <p class="up-drop-sub">单个文件最大 {{ $u.maxSizeMB | default 25 }} MB</p>
+        </div>
+
+        <ul class="up-queue" id="up-queue"></ul>
+
+        <div class="up-row up-actions" id="up-actions" hidden>
+            <button type="button" class="up-btn up-btn-primary" id="up-send">开始上传</button>
+            <button type="button" class="up-btn" id="up-clear">清空</button>
+        </div>
+
+        <div id="up-progress" class="up-status"></div>
+    </section>
+
+    <section class="up-card" id="up-result-card" hidden>
+        <h2>上传完成</h2>
+        <p class="up-hint">GitHub 正在重新构建站点，大约 1~2 分钟后这些文件就会出现在下载区里。</p>
+        <ul class="up-links" id="up-links"></ul>
+    </section>
+</div>
+
+<script>
+    (function () {
+        'use strict';
+
+        var root = document.querySelector('.up-page');
+        if (!root) return;
+
+        var cfg = {
+            repo: root.dataset.repo,
+            branch: root.dataset.branch,
+            dir: root.dataset.dir,
+            max: (parseFloat(root.dataset.max) || 25) * 1024 * 1024,
+            site: (root.dataset.site || '').replace(/\/+$/, '')
+        };
+
+        var API = 'https://api.github.com';
+        var TOKEN_KEY = 'gh-upload-token';
+
+        var elToken = document.getElementById('up-token');
+        var elSave = document.getElementById('up-save');
+        var elAuthStatus = document.getElementById('up-auth-status');
+        var elPickCard = document.getElementById('up-pick-card');
+        var elDrop = document.getElementById('up-drop');
+        var elInput = document.getElementById('up-input');
+        var elQueue = document.getElementById('up-queue');
+        var elActions = document.getElementById('up-actions');
+        var elSend = document.getElementById('up-send');
+        var elClear = document.getElementById('up-clear');
+        var elProgress = document.getElementById('up-progress');
+        var elResultCard = document.getElementById('up-result-card');
+        var elLinks = document.getElementById('up-links');
+
+        var queue = [];
+        var busy = false;
+
+        /* ---------------- 令牌 ---------------- */
+
+        function getToken() {
+            try { return localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; }
+        }
+
+        function setToken(v) {
+            try {
+                if (v) localStorage.setItem(TOKEN_KEY, v);
+                else localStorage.removeItem(TOKEN_KEY);
+            } catch (e) { /* 隐私模式下写不进去，忽略 */ }
+        }
+
+        /* ---------------- API 封装 ---------------- */
+
+        function api(path, opts) {
+            opts = opts || {};
+            var headers = {
+                Accept: 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28'
+            };
+            var token = getToken();
+            if (token) headers.Authorization = 'Bearer ' + token;
+            if (opts.body) headers['Content-Type'] = 'application/json';
+
+            return fetch(API + path, {
+                method: opts.method || 'GET',
+                headers: headers,
+                body: opts.body ? JSON.stringify(opts.body) : undefined
+            }).then(function (res) {
+                return res.text().then(function (text) {
+                    var data = null;
+                    if (text) { try { data = JSON.parse(text); } catch (e) { data = null; } }
+                    if (!res.ok) {
+                        var err = new Error((data && data.message) || ('HTTP ' + res.status));
+                        err.status = res.status;
+                        throw err;
+                    }
+                    return data;
+                });
+            });
+        }
+
+        /* ---------------- 小工具 ---------------- */
+
+        function fmtSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        // 文件名清洗：空格换成连字符，去掉 URL 和文件系统里的敏感字符（中文保留）
+        function cleanName(name) {
+            var n = String(name || '').trim()
+                .replace(/\s+/g, '-')
+                .replace(/[\\/:*?"<>|#%&{}$!'@+`=;,()\[\]]/g, '');
+            return n || 'file';
+        }
+
+        function fileToBase64(file) {
+            return new Promise(function (resolve, reject) {
+                var reader = new FileReader();
+                reader.onload = function () {
+                    var s = String(reader.result);
+                    resolve(s.slice(s.indexOf(',') + 1));
+                };
+                reader.onerror = function () { reject(new Error('读取失败：' + file.name)); };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function setStatus(el, text, kind) {
+            if (!el) return;
+            el.textContent = text || '';
+            el.className = 'up-status' + (kind ? ' up-status-' + kind : '');
+        }
+
+        /* ---------------- 连接状态 ---------------- */
+
+        function showConnected(login) {
+            elAuthStatus.className = 'up-status up-status-ok';
+            elAuthStatus.textContent = '已连接为 ' + login + '，可以开始上传了。';
+            elPickCard.hidden = false;
+            elToken.value = '';
+            elToken.placeholder = '已保存令牌，想换一个就直接粘贴新的';
+            var btn = document.getElementById('up-disconnect');
+            if (!btn) {
+                btn = document.createElement('button');
+                btn.type = 'button';
+                btn.id = 'up-disconnect';
+                btn.className = 'up-btn up-btn-quiet';
+                btn.textContent = '断开';
+                btn.addEventListener('click', function () {
+                    setToken('');
+                    elPickCard.hidden = true;
+                    elAuthStatus.className = 'up-status';
+                    elAuthStatus.textContent = '已断开，令牌已从本机删除。';
+                    elToken.placeholder = '粘贴 GitHub 令牌（github_pat_ 或 ghp_ 开头）';
+                });
+                elAuthStatus.parentNode.insertBefore(btn, elAuthStatus.nextSibling);
+            }
+        }
+
+        function verifyToken() {
+            return api('/repos/' + cfg.repo).then(function (repo) {
+                if (!repo.permissions || !repo.permissions.push) {
+                    throw new Error('这个令牌没有该仓库的写入权限，请确认 Contents 权限是 Read and write');
+                }
+                return api('/user').then(function (user) {
+                    return user.login || repo.full_name;
+                });
+            });
+        }
+
+        function tryRestore() {
+            if (!getToken()) {
+                elAuthStatus.className = 'up-status';
+                elAuthStatus.textContent = '还没连接。';
+                return;
+            }
+            setStatus(elAuthStatus, '正在验证本机保存的令牌…');
+            verifyToken().then(function (login) {
+                showConnected(login);
+            }).catch(function (err) {
+                setToken('');
+                setStatus(elAuthStatus, '本机保存的令牌无效（' + err.message + '），请重新粘贴一个。', 'err');
+            });
+        }
+
+        /* ---------------- 队列 ---------------- */
+
+        function renderQueue() {
+            elQueue.textContent = '';
+            queue.forEach(function (item, index) {
+                var li = document.createElement('li');
+                li.className = 'up-item';
+
+                var name = document.createElement('input');
+                name.type = 'text';
+                name.className = 'up-item-name';
+                name.value = item.name;
+                name.spellcheck = false;
+                name.addEventListener('input', function () {
+                    item.name = name.value;
+                });
+                name.addEventListener('blur', function () {
+                    var cleaned = cleanName(name.value);
+                    item.name = cleaned;
+                    name.value = cleaned;
+                });
+
+                var size = document.createElement('span');
+                size.className = 'up-item-size';
+                size.textContent = fmtSize(item.file.size);
+
+                var status = document.createElement('span');
+                status.className = 'up-item-status';
+                status.textContent = item.status || '';
+                item.statusEl = status;
+
+                var del = document.createElement('button');
+                del.type = 'button';
+                del.className = 'up-item-del';
+                del.title = '移除';
+                del.textContent = '×';
+                del.addEventListener('click', function () {
+                    if (busy) return;
+                    queue.splice(index, 1);
+                    renderQueue();
+                });
+
+                li.appendChild(name);
+                li.appendChild(size);
+                li.appendChild(status);
+                li.appendChild(del);
+                elQueue.appendChild(li);
+            });
+
+            elActions.hidden = queue.length === 0;
+        }
+
+        function addFiles(files) {
+            var rejected = [];
+            Array.prototype.forEach.call(files, function (file) {
+                if (file.size > cfg.max) {
+                    rejected.push(file.name + '（' + fmtSize(file.size) + '，超过上限）');
+                    return;
+                }
+                var name = cleanName(file.name);
+                // 同名就去重，后来的覆盖先前的
+                queue = queue.filter(function (q) { return q.name !== name; });
+                queue.push({ file: file, name: name, status: '' });
+            });
+            renderQueue();
+            if (rejected.length) {
+                setStatus(elProgress, '这几个文件太大了，没加进来：' + rejected.join('、') +
+                    '。超过 ' + Math.round(cfg.max / 1048576) + ' MB 的文件建议走 GitHub Releases。', 'err');
+            } else {
+                setStatus(elProgress, '');
+            }
+        }
+
+        /* ---------------- 上传 ---------------- */
+
+        function upload() {
+            if (busy) return;
+            var items = queue.slice();
+            if (!items.length) return;
+
+            var dup = {};
+            for (var i = 0; i < items.length; i++) {
+                if (dup[items[i].name]) {
+                    setStatus(elProgress, '有两个文件都叫「' + items[i].name + '」，先改掉一个。', 'err');
+                    return;
+                }
+                dup[items[i].name] = true;
+            }
+
+            busy = true;
+            elSend.disabled = true;
+            elSend.textContent = '上传中…';
+            setStatus(elProgress, '正在读取仓库当前状态…');
+
+            var headSha = '';
+            var baseTree = '';
+
+            api('/repos/' + cfg.repo + '/git/ref/heads/' + cfg.branch)
+                .then(function (ref) {
+                    headSha = ref.object.sha;
+                    return api('/repos/' + cfg.repo + '/git/commits/' + headSha);
+                })
+                .then(function (commit) {
+                    baseTree = commit.tree.sha;
+                    // 逐个建 blob，串行避免打爆 API
+                    return items.reduce(function (chain, item, index) {
+                        return chain.then(function (treeItems) {
+                            setStatus(elProgress, '正在处理 ' + (index + 1) + '/' + items.length + '：' + item.name);
+                            if (item.statusEl) item.statusEl.textContent = '准备中';
+                            return fileToBase64(item.file).then(function (content) {
+                                return api('/repos/' + cfg.repo + '/git/blobs', {
+                                    method: 'POST',
+                                    body: { content: content, encoding: 'base64' }
+                                });
+                            }).then(function (blob) {
+                                if (item.statusEl) item.statusEl.textContent = '已就绪';
+                                treeItems.push({
+                                    path: cfg.dir + '/' + item.name,
+                                    mode: '100644',
+                                    type: 'blob',
+                                    sha: blob.sha
+                                });
+                                return treeItems;
+                            });
+                        });
+                    }, Promise.resolve([]));
+                })
+                .then(function (treeItems) {
+                    setStatus(elProgress, '正在提交…');
+                    return api('/repos/' + cfg.repo + '/git/trees', {
+                        method: 'POST',
+                        body: { base_tree: baseTree, tree: treeItems }
+                    });
+                })
+                .then(function (tree) {
+                    return api('/repos/' + cfg.repo + '/git/commits', {
+                        method: 'POST',
+                        body: {
+                            message: items.length === 1
+                                ? 'upload: ' + items[0].name
+                                : 'upload: ' + items.length + ' files',
+                            tree: tree.sha,
+                            parents: [headSha]
+                        }
+                    });
+                })
+                .then(function (commit) {
+                    return api('/repos/' + cfg.repo + '/git/refs/heads/' + cfg.branch, {
+                        method: 'PATCH',
+                        body: { sha: commit.sha, force: false }
+                    });
+                })
+                .then(function () {
+                    setStatus(elProgress, '推送完成，GitHub 正在重新构建站点。', 'ok');
+                    showResult(items);
+                    queue = [];
+                    renderQueue();
+                })
+                .catch(function (err) {
+                    var hint = '';
+                    if (err.status === 401) hint = '（令牌无效或已过期）';
+                    else if (err.status === 403) hint = '（令牌权限不够，或者触发了限流）';
+                    else if (err.status === 409 || err.status === 422) hint = '（仓库刚刚有新提交，刷新页面再传一次）';
+                    setStatus(elProgress, '上传失败：' + err.message + hint, 'err');
+                })
+                .then(function () {
+                    busy = false;
+                    elSend.disabled = false;
+                    elSend.textContent = '开始上传';
+                });
+        }
+
+        function showResult(items) {
+            elLinks.textContent = '';
+            items.forEach(function (item) {
+                var li = document.createElement('li');
+                li.className = 'up-link';
+
+                var title = document.createElement('div');
+                title.className = 'up-link-title';
+                title.textContent = item.name;
+
+                var url = cfg.site + '/downloads/' + encodeURIComponent(item.name);
+
+                var row = document.createElement('div');
+                row.className = 'up-link-row';
+
+                var code = document.createElement('code');
+                code.textContent = url;
+
+                var copy = document.createElement('button');
+                copy.type = 'button';
+                copy.className = 'up-btn up-btn-quiet';
+                copy.textContent = '复制链接';
+                copy.addEventListener('click', function () {
+                    copyText(url, copy);
+                });
+
+                var copyMd = document.createElement('button');
+                copyMd.type = 'button';
+                copyMd.className = 'up-btn up-btn-quiet';
+                copyMd.textContent = '复制 Markdown';
+                copyMd.addEventListener('click', function () {
+                    copyText('[' + item.name + '](' + url + ')', copyMd);
+                });
+
+                row.appendChild(code);
+                row.appendChild(copy);
+                row.appendChild(copyMd);
+
+                li.appendChild(title);
+                li.appendChild(row);
+                elLinks.appendChild(li);
+            });
+            elResultCard.hidden = false;
+            elResultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function copyText(text, btn) {
+            var done = function () {
+                var old = btn.textContent;
+                btn.textContent = '已复制';
+                setTimeout(function () { btn.textContent = old; }, 1500);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text, done); });
+            } else {
+                fallbackCopy(text, done);
+            }
+        }
+
+        function fallbackCopy(text, done) {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); done(); } catch (e) { /* 忽略 */ }
+            document.body.removeChild(ta);
+        }
+
+        /* ---------------- 事件 ---------------- */
+
+        elSave.addEventListener('click', function () {
+            var value = elToken.value.trim();
+            if (!value) {
+                setStatus(elAuthStatus, '先粘贴一个令牌。', 'err');
+                return;
+            }
+            setToken(value);
+            setStatus(elAuthStatus, '正在验证…');
+            verifyToken().then(function (login) {
+                showConnected(login);
+                setStatus(elProgress, '');
+            }).catch(function (err) {
+                setToken('');
+                setStatus(elAuthStatus, '验证失败：' + err.message, 'err');
+            });
+        });
+
+        elDrop.addEventListener('click', function () { elInput.click(); });
+        elInput.addEventListener('change', function () {
+            addFiles(elInput.files);
+            elInput.value = '';
+        });
+
+        ['dragenter', 'dragover'].forEach(function (type) {
+            elDrop.addEventListener(type, function (e) {
+                e.preventDefault();
+                elDrop.classList.add('is-over');
+            });
+        });
+        ['dragleave', 'drop'].forEach(function (type) {
+            elDrop.addEventListener(type, function (e) {
+                e.preventDefault();
+                elDrop.classList.remove('is-over');
+            });
+        });
+        elDrop.addEventListener('drop', function (e) {
+            if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files);
+        });
+
+        elSend.addEventListener('click', upload);
+
+        elClear.addEventListener('click', function () {
+            if (busy) return;
+            queue = [];
+            renderQueue();
+            setStatus(elProgress, '');
+        });
+
+        tryRestore();
+    })();
+</script>
+
+{{- end }}
+
+{{- end }}{{/* end main */}}
