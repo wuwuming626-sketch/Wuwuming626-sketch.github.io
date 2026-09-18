@@ -919,6 +919,15 @@ html[data-theme="dark"] .post-entry:hover {
     gap: 18px;
 }
 
+/* 页内那些靠 hidden 属性开关的区块（结果区、按钮行）必须显式关掉：
+   PaperMod 给 section / article 一类元素设了 display:block，那是作者样式，
+   会直接盖掉浏览器默认的 [hidden]{display:none}，导致加了 hidden 依然显示。
+   只限定在 .up-page 内，别动正文标题的锚点 —— 那个 .anchor 也是用 hidden 控制的，
+   靠 :hover 切成 inline-flex。 */
+.up-page [hidden] {
+    display: none !important;
+}
+
 .up-note {
     margin: 0;
     padding: 14px 16px;
