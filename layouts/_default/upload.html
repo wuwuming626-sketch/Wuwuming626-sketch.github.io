@@ -285,58 +285,10 @@
             return '---\ntitle: ' + yamlQuote(title) + '\ndate: ' + nowIso() + '\n---\n\n' + text;
         }
 
-        // 附件按扩展名分类：决定图标、类型文案，以及要不要在正文里给在线预览
-        var DOC_KINDS = {
-            '.pdf': ['pdf', 'PDF 文档'],
-            '.doc': ['office', 'Word 文档'], '.docx': ['office', 'Word 文档'],
-            '.xls': ['office', 'Excel 表格'], '.xlsx': ['office', 'Excel 表格'],
-            '.ppt': ['office', 'PPT 演示'], '.pptx': ['office', 'PPT 演示'],
-            '.png': ['image', '图片'], '.jpg': ['image', '图片'], '.jpeg': ['image', '图片'],
-            '.gif': ['image', '图片'], '.webp': ['image', '图片'], '.svg': ['image', '图片'],
-            '.bmp': ['image', '图片'], '.avif': ['image', '图片'],
-            '.zip': ['archive', '压缩包'], '.rar': ['archive', '压缩包'],
-            '.7z': ['archive', '压缩包'], '.tar': ['archive', '压缩包'], '.gz': ['archive', '压缩包']
-        };
-
-        function docInfo(ext) {
-            if (DOC_KINDS[ext]) return DOC_KINDS[ext];
-            return ['other', ext ? ext.slice(1).toUpperCase() + ' 文件' : '文件'];
-        }
-
-        // 短代码参数是双引号包着的，名字里的引号会把语法断开（Windows 文件名本来也不允许引号）
-        function shAttr(value) {
-            return String(value).replace(/"/g, '\'');
-        }
-
-        // 列表页的摘要：卡片里的文字被拉平后是一串标签，不好看，这里给一句人话
-        function docSummary(plan, info) {
-            var head = plan.attachName + '（' + info[1] + ' · ' + plan.attachSize + '）';
-            if (info[0] === 'pdf') return head + '，可在线预览或下载。';
-            if (info[0] === 'image') return head + '，正文里直接显示，也可以下载。';
-            return head + '，点文章里的按钮下载。';
-        }
-
-        // 附件没法当正文，配一篇带文件卡片和在线预览的笔记：版式交给 doc 短代码
-        // 花括号只能拆开拼——Hugo 模板里出现连续两个就会当成模板语法
+        // 附件没法当正文，那就配一篇只有下载入口的笔记
         function attachNote(plan) {
-            var info = docInfo(plan.ext);
-            var open = '{' + '{< doc ';
-            var close = ' >' + '}' + '}';
-            return '---\n' +
-                'title: ' + yamlQuote(plan.title) + '\n' +
-                'date: ' + nowIso() + '\n' +
-                'summary: ' + yamlQuote(docSummary(plan, info)) + '\n' +
-                // 正文只有一张卡片，没有成句的话，读字数和时长在这儿没意义
-                'ShowReadingTime: false\n' +
-                'ShowWordCount: false\n' +
-                '---\n\n' +
-                open +
-                'name="' + shAttr(plan.attachName) +
-                '" url="' + shAttr(plan.attachPath) +
-                '" size="' + shAttr(plan.attachSize) +
-                '" kind="' + info[0] +
-                '" type="' + info[1] + '"' +
-                close + '\n';
+            return '---\ntitle: ' + yamlQuote(plan.title) + '\ndate: ' + nowIso() + '\n---\n\n' +
+                '📎 附件：[' + plan.attachName + '](' + plan.attachPath + ')（' + plan.attachSize + '）\n';
         }
 
         function currentMode() {
