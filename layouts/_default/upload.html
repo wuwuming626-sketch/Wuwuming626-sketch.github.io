@@ -23,25 +23,8 @@
         一两分钟后就能在 <a href="{{ "downloads/" | relURL }}">下载区</a> 看到。
     </p>
 
-    <section class="up-card">
-        <h2>1 · 连接 GitHub</h2>
-        <div id="up-auth-box">
-            <div class="up-row">
-                <input type="password" id="up-token" class="up-input" autocomplete="off" spellcheck="false"
-                    placeholder="粘贴 GitHub 令牌（github_pat_ 或 ghp_ 开头）">
-                <button type="button" class="up-btn" id="up-save">保存并验证</button>
-            </div>
-            <p class="up-hint">
-                令牌只存在你自己这台浏览器里（localStorage），除了 <code>api.github.com</code> 不会发给任何地方。
-                建议到 GitHub 建一个 <b>Fine-grained token</b>：只勾选这一个仓库，
-                权限只给 <b>Contents: Read and write</b>，再设个到期时间。
-            </p>
-        </div>
-        <div id="up-auth-status" class="up-status"></div>
-    </section>
-
-    <section class="up-card" id="up-pick-card" hidden>
-        <h2>2 · 选文件</h2>
+    <section class="up-card" id="up-pick-card">
+        <h2>把文件拖进来</h2>
         <div class="up-drop" id="up-drop">
             <input type="file" id="up-input" multiple hidden>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -50,8 +33,8 @@
                 <polyline points="17 8 12 3 7 8"></polyline>
                 <line x1="12" y1="3" x2="12" y2="15"></line>
             </svg>
-            <p>把文件拖进来，或者点击选择</p>
-            <p class="up-drop-sub">单个文件最大 {{ $u.maxSizeMB | default 25 }} MB</p>
+            <p>把文件拖进来，或者点击这里选择</p>
+            <p class="up-drop-sub">单个文件最大 {{ $u.maxSizeMB | default 25 }} MB，可以一次选多个</p>
         </div>
 
         <ul class="up-queue" id="up-queue"></ul>
@@ -62,6 +45,24 @@
         </div>
 
         <div id="up-progress" class="up-status"></div>
+    </section>
+
+    <section class="up-card" id="up-auth-card">
+        <h2>连接 GitHub</h2>
+        <div id="up-auth-box">
+            <div class="up-row">
+                <input type="password" id="up-token" class="up-input" autocomplete="off" spellcheck="false"
+                    placeholder="粘贴 GitHub 令牌（github_pat_ 或 ghp_ 开头）">
+                <button type="button" class="up-btn" id="up-save">保存并验证</button>
+            </div>
+            <p class="up-hint">
+                只需要连接一次，令牌存在你自己这台浏览器里（localStorage），
+                除了 <code>api.github.com</code> 不会发给任何地方。
+                建议到 GitHub 建一个 <b>Fine-grained token</b>：只勾选这一个仓库，
+                权限只给 <b>Contents: Read and write</b>，再设个到期时间。
+            </p>
+        </div>
+        <div id="up-auth-status" class="up-status"></div>
     </section>
 
     <section class="up-card" id="up-result-card" hidden>
@@ -92,7 +93,7 @@
         var elToken = document.getElementById('up-token');
         var elSave = document.getElementById('up-save');
         var elAuthStatus = document.getElementById('up-auth-status');
-        var elPickCard = document.getElementById('up-pick-card');
+        var elAuthCard = document.getElementById('up-auth-card');
         var elDrop = document.getElementById('up-drop');
         var elInput = document.getElementById('up-input');
         var elQueue = document.getElementById('up-queue');
@@ -188,7 +189,6 @@
         function showConnected(login) {
             elAuthStatus.className = 'up-status up-status-ok';
             elAuthStatus.textContent = '已连接为 ' + login + '，可以开始上传了。';
-            elPickCard.hidden = false;
             elToken.value = '';
             elToken.placeholder = '已保存令牌，想换一个就直接粘贴新的';
             var btn = document.getElementById('up-disconnect');
@@ -200,7 +200,6 @@
                 btn.textContent = '断开';
                 btn.addEventListener('click', function () {
                     setToken('');
-                    elPickCard.hidden = true;
                     elAuthStatus.className = 'up-status';
                     elAuthStatus.textContent = '已断开，令牌已从本机删除。';
                     elToken.placeholder = '粘贴 GitHub 令牌（github_pat_ 或 ghp_ 开头）';
@@ -314,6 +313,12 @@
             if (busy) return;
             var items = queue.slice();
             if (!items.length) return;
+
+            if (!getToken()) {
+                setStatus(elProgress, '还没连接 GitHub。先在下面「连接 GitHub」里粘贴一次令牌，之后就不用再输了。', 'err');
+                elAuthCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
 
             var dup = {};
             for (var i = 0; i < items.length; i++) {
