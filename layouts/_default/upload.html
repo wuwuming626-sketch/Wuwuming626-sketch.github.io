@@ -150,6 +150,23 @@
             });
         }
 
+        // 把 API 的状态码翻译成能照着做的话
+        function hintFor(err) {
+            var msg = String(err.message || '');
+            if (err.status === 401) return '（令牌无效或已过期，重新生成一个再粘贴）';
+            if (err.status === 404) {
+                return '（这个令牌看不到仓库 ' + cfg.repo +
+                    '：Repository access 要选 Only select repositories 并勾上它）';
+            }
+            if (err.status === 403) {
+                return /rate limit/i.test(msg)
+                    ? '（触发了 GitHub 限流，等几分钟再传）'
+                    : '（令牌没有写权限：Permissions 里把 Contents 设成 Read and write）';
+            }
+            if (err.status === 409 || err.status === 422) return '（仓库刚刚有新提交，刷新页面再传一次）';
+            return '';
+        }
+
         /* ---------------- 小工具 ---------------- */
 
         function fmtSize(bytes) {
@@ -211,7 +228,9 @@
         function verifyToken() {
             return api('/repos/' + cfg.repo).then(function (repo) {
                 if (!repo.permissions || !repo.permissions.push) {
-                    throw new Error('这个令牌没有该仓库的写入权限，请确认 Contents 权限是 Read and write');
+                    // 光看这里不够准，fine-grained 令牌这个字段可能反映的是账号本身的角色，
+                    // 所以真正的写权限校验放在上传时的 403 上。
+                    throw new Error('这个令牌拿不到该仓库的写入权限');
                 }
                 return api('/user').then(function (user) {
                     return user.login || repo.full_name;
@@ -229,8 +248,10 @@
             verifyToken().then(function (login) {
                 showConnected(login);
             }).catch(function (err) {
-                setToken('');
-                setStatus(elAuthStatus, '本机保存的令牌无效（' + err.message + '），请重新粘贴一个。', 'err');
+                // 只有令牌本身失效才清掉。权限没配好这类问题留着令牌，
+                // 改完 GitHub 上的设置直接再点一次就行 —— 令牌生成后就不再显示了，清掉只能重新生成。
+                if (err.status === 401) setToken('');
+                setStatus(elAuthStatus, '令牌用不了：' + err.message + hintFor(err), 'err');
             });
         }
 
@@ -399,20 +420,7 @@
                     renderQueue();
                 })
                 .catch(function (err) {
-                    var msg = String(err.message || '');
-                    var hint = '';
-                    if (err.status === 401) {
-                        hint = '（令牌无效或已过期，重新生成一个再粘贴）';
-                    } else if (err.status === 404) {
-                        hint = '（找不到仓库 ' + cfg.repo + '：令牌的 Repository access 里没勾上它）';
-                    } else if (err.status === 403) {
-                        hint = /rate limit/i.test(msg)
-                            ? '（触发了 GitHub 限流，等几分钟再传）'
-                            : '（令牌没有写权限：去 GitHub 令牌设置把 Contents 改成 Read and write，保存后立刻生效，不用重新粘贴令牌）';
-                    } else if (err.status === 409 || err.status === 422) {
-                        hint = '（仓库刚刚有新提交，刷新页面再传一次）';
-                    }
-                    setStatus(elProgress, '上传失败：' + msg + hint, 'err');
+                    setStatus(elProgress, '上传失败：' + err.message + hintFor(err), 'err');
                 })
                 .then(function () {
                     busy = false;
@@ -506,8 +514,10 @@
                 showConnected(login);
                 setStatus(elProgress, '');
             }).catch(function (err) {
-                setToken('');
-                setStatus(elAuthStatus, '验证失败：' + err.message, 'err');
+                // 和 tryRestore 一样：只有失效的令牌才清掉，权限没配好的留着，
+                // 免得非要去 GitHub 重新生成一串（那串只显示一次）。
+                if (err.status === 401) setToken('');
+                setStatus(elAuthStatus, '验证失败：' + err.message + hintFor(err), 'err');
             });
         });
 
