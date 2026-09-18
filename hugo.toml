@@ -50,7 +50,7 @@ lang = 'zh-CN'
 
 # 文件上传（/upload/ 页面用）：文件会提交到仓库的 static/downloads/ 下，
 # push 后 Actions 自动构建，一两分钟就能在 /downloads/ 里看到。
-# 上传页不进导航，也不让搜索引擎收录。
+# 上传页挂在导航里（自己好找），但不让搜索引擎收录。
 [params.upload]
 repo = 'wuwuming626-sketch/Wuwuming626-sketch.github.io'
 branch = 'main'
@@ -68,6 +68,8 @@ Content = """
 - [技术学习笔记](/tech-notes/)
 - [项目实战经验](/projects/)
 - [踩坑与解决方案](/solutions/)
+
+📥 文件：[下载区](/downloads/) · **[上传文件](/upload/)**
 """
 
 [[menu.main]]
@@ -114,6 +116,11 @@ weight = 8
 name = "归档"
 url = "/archives/"
 weight = 9
+
+[[menu.main]]
+name = "上传"
+url = "/upload/"
+weight = 10
 
 # 相关文章：先按标签匹配，再按系列匹配（同栏目兜底在模板里做）
 [related]
