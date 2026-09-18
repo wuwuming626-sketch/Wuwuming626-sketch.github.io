@@ -17,12 +17,6 @@
      data-max="{{ $u.maxSizeMB | default 25 }}"
      data-site="{{ site.BaseURL }}">
 
-    <p class="up-note">
-        这是给自己用的上传入口，没有放进导航。文件会直接提交进仓库的
-        <code>{{ $u.dir | default "static/downloads" }}</code>，GitHub Actions 随后重新构建，
-        一两分钟后就能在 <a href="{{ "downloads/" | relURL }}">下载区</a> 看到。
-    </p>
-
     <section class="up-card" id="up-pick-card">
         <h2>把文件拖进来</h2>
         <div class="up-drop" id="up-drop">
@@ -46,6 +40,12 @@
 
         <div id="up-progress" class="up-status"></div>
     </section>
+
+    <p class="up-note">
+        这是给自己用的上传入口，没有放进导航。文件会直接提交进仓库的
+        <code>{{ $u.dir | default "static/downloads" }}</code>，GitHub Actions 随后重新构建，
+        一两分钟后就能在 <a href="{{ "downloads/" | relURL }}">下载区</a> 看到。
+    </p>
 
     <section class="up-card" id="up-auth-card">
         <h2>连接 GitHub</h2>
