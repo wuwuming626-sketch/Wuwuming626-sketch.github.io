@@ -963,6 +963,53 @@ html[data-theme="dark"] .post-entry:hover {
     margin-top: 14px;
 }
 
+/* 模式切换：发布成笔记 / 只放下载区，右边跟着栏目下拉 */
+.up-mode {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 20px;
+    margin-bottom: 14px;
+}
+
+.up-mode-opt {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--content);
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.up-mode-opt input {
+    margin: 0;
+    accent-color: var(--a-tech);
+}
+
+.up-section {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--secondary);
+    font-size: 15px;
+}
+
+.up-section select {
+    /* 下拉默认会被拉满一行，这里按内容收窄 */
+    width: auto;
+    padding: 4px 8px;
+    color: var(--content);
+    font-size: 15px;
+    background: var(--theme);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+.up-drop-mode {
+    max-width: 34em;
+    text-align: center;
+}
+
 .up-input {
     flex: 1 1 260px;
     min-width: 0;
@@ -1094,14 +1141,29 @@ html[data-theme="dark"] .up-status-err {
 
 .up-item {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    flex-direction: column;
+    gap: 5px;
     padding: 9px 12px;
     border-bottom: 1px solid var(--border);
 }
 
 .up-item:last-child {
     border-bottom: none;
+}
+
+.up-item-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* 队列里那行「会写到仓库的哪里」 */
+.up-item-path {
+    color: var(--secondary);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
 }
 
 .up-item-name {
@@ -1161,6 +1223,18 @@ html[data-theme="dark"] .up-status-err {
     font-size: 15px;
     font-weight: 600;
     overflow-wrap: anywhere;
+}
+
+.up-link-sub {
+    margin: 0 0 8px;
+    color: var(--secondary);
+    font-size: 13px;
+}
+
+.up-link-label {
+    flex: 0 0 auto;
+    color: var(--secondary);
+    font-size: 12px;
 }
 
 .up-link-row {

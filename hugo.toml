@@ -58,6 +58,24 @@ dir = 'static/downloads'
 # 单文件上限（MB）。GitHub 硬限制是 100MB，这里留足余量；更大的文件请走 GitHub Releases
 maxSizeMB = 25
 
+# 上传页「发布成笔记」模式可选的目标栏目，按顺序出现在下拉里。
+# dir 是 content/ 下的目录名，上传的文档会提交成 content/<dir>/<标题>.md
+[[params.upload.sections]]
+name = '开发日记'
+dir = 'posts'
+
+[[params.upload.sections]]
+name = '技术笔记'
+dir = 'tech-notes'
+
+[[params.upload.sections]]
+name = '项目实战'
+dir = 'projects'
+
+[[params.upload.sections]]
+name = '踩坑记录'
+dir = 'solutions'
+
 [params.homeInfoParams]
 Title = "欢迎来到土豆教主的逆袭之路"
 Content = """

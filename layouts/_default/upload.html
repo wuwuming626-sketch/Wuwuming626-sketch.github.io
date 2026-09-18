@@ -19,6 +19,26 @@
 
     <section class="up-card" id="up-pick-card">
         <h2>把文件拖进来</h2>
+
+        <div class="up-mode">
+            <label class="up-mode-opt">
+                <input type="radio" name="up-mode" value="note" checked>
+                <span>发布成笔记</span>
+            </label>
+            <label class="up-mode-opt">
+                <input type="radio" name="up-mode" value="file">
+                <span>只放下载区</span>
+            </label>
+            <label class="up-section" id="up-section-label">
+                <span>发到</span>
+                <select id="up-section">
+                    {{- range $u.sections }}
+                    <option value="{{ .dir }}">{{ .name }}</option>
+                    {{- end }}
+                </select>
+            </label>
+        </div>
+
         <div class="up-drop" id="up-drop">
             <input type="file" id="up-input" multiple hidden>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -29,6 +49,7 @@
             </svg>
             <p>把文件拖进来，或者点击这里选择</p>
             <p class="up-drop-sub">单个文件最大 {{ $u.maxSizeMB | default 25 }} MB，可以一次选多个</p>
+            <p class="up-drop-sub up-drop-mode" id="up-drop-mode"></p>
         </div>
 
         <ul class="up-queue" id="up-queue"></ul>
@@ -42,9 +63,10 @@
     </section>
 
     <p class="up-note">
-        这是给自己用的上传入口，没有放进导航。文件会直接提交进仓库的
-        <code>{{ $u.dir | default "static/downloads" }}</code>，GitHub Actions 随后重新构建，
-        一两分钟后就能在 <a href="{{ "downloads/" | relURL }}">下载区</a> 看到。
+        给自己用的入口。文件直接提交进仓库：<b>发布成笔记</b>会写成
+        <code>content/&lt;栏目&gt;/&lt;标题&gt;.md</code>，<b>只放下载区</b>会放进
+        <code>{{ $u.dir | default "static/downloads" }}</code>。GitHub Actions 随后重新构建，
+        一两分钟后文章和文件就都上线了。
     </p>
 
     <section class="up-card" id="up-auth-card">
@@ -67,7 +89,7 @@
 
     <section class="up-card" id="up-result-card" hidden>
         <h2>上传完成</h2>
-        <p class="up-hint">GitHub 正在重新构建站点，大约 1~2 分钟后这些文件就会出现在下载区里。</p>
+        <p class="up-hint" id="up-result-hint"></p>
         <ul class="up-links" id="up-links"></ul>
     </section>
 </div>
@@ -102,7 +124,17 @@
         var elClear = document.getElementById('up-clear');
         var elProgress = document.getElementById('up-progress');
         var elResultCard = document.getElementById('up-result-card');
+        var elResultHint = document.getElementById('up-result-hint');
         var elLinks = document.getElementById('up-links');
+        var elSection = document.getElementById('up-section');
+        var elSectionLabel = document.getElementById('up-section-label');
+        var elDropMode = document.getElementById('up-drop-mode');
+        var elModes = document.querySelectorAll('input[name="up-mode"]');
+
+        // 发布成笔记时，正文写到 content/<栏目>/ 下
+        var CONTENT_DIR = 'content';
+        // 这几个扩展名当正文处理，其余（PDF / Office / 图片 / 压缩包）一律当附件
+        var TEXT_EXTS = ['.md', '.markdown', '.txt'];
 
         var queue = [];
         var busy = false;
@@ -195,6 +227,113 @@
             });
         }
 
+        function extOf(name) {
+            var i = String(name).lastIndexOf('.');
+            return i > 0 ? String(name).slice(i).toLowerCase() : '';
+        }
+
+        function stripExt(name) {
+            var i = String(name).lastIndexOf('.');
+            return i > 0 ? String(name).slice(0, i) : String(name);
+        }
+
+        // 这个扩展名是不是当正文处理
+        function isTextExt(ext) {
+            return TEXT_EXTS.indexOf(ext) !== -1;
+        }
+
+        // 按文本读（FileReader 默认 UTF-8），改完再自己编码回 base64
+        function readText(file) {
+            return new Promise(function (resolve, reject) {
+                var reader = new FileReader();
+                reader.onload = function () { resolve(String(reader.result)); };
+                reader.onerror = function () { reject(new Error('读取失败：' + file.name)); };
+                reader.readAsText(file);
+            });
+        }
+
+        // btoa 只认 Latin-1，中文直接抛 InvalidCharacterError，
+        // 所以先用 TextEncoder 转成 UTF-8 字节，再分块喂给 fromCharCode
+        function utf8ToBase64(text) {
+            var bytes = new TextEncoder().encode(text);
+            var CHUNK = 0x8000;
+            var bin = '';
+            for (var i = 0; i < bytes.length; i += CHUNK) {
+                bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+            }
+            return btoa(bin);
+        }
+
+        // 带时区的本地时间。Hugo 认这个格式，文章日期才不会偏
+        function nowIso() {
+            var d = new Date();
+            var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+            var off = -d.getTimezoneOffset();
+            var sign = off < 0 ? '-' : '+';
+            return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' +
+                pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) +
+                sign + pad(Math.floor(Math.abs(off) / 60)) + ':' + pad(Math.abs(off) % 60);
+        }
+
+        function yamlQuote(value) {
+            return '"' + String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+        }
+
+        // 自己带了 front matter 就原样不动，否则补一个最小可用的
+        function ensureFrontMatter(text, title) {
+            if (/^---(\r?\n)/.test(text.replace(/^\uFEFF/, ''))) return text;
+            return '---\ntitle: ' + yamlQuote(title) + '\ndate: ' + nowIso() + '\n---\n\n' + text;
+        }
+
+        // 附件没法当正文，那就配一篇只有下载入口的笔记
+        function attachNote(plan) {
+            return '---\ntitle: ' + yamlQuote(plan.title) + '\ndate: ' + nowIso() + '\n---\n\n' +
+                '📎 附件：[' + plan.attachName + '](' + plan.attachPath + ')（' + plan.attachSize + '）\n';
+        }
+
+        function currentMode() {
+            var checked = document.querySelector('input[name="up-mode"]:checked');
+            return checked && checked.value === 'file' ? 'file' : 'note';
+        }
+
+        /*
+         * 把一个队列项翻译成「要往仓库里写哪些文件」：
+         *   只放下载区   → static/downloads/<文件名>
+         *   笔记 + md/txt → content/<栏目>/<标题>.md，文件内容就是正文
+         *   笔记 + 其它   → 上面那篇笔记（正文只有下载入口）+ static/downloads/<文件名>
+         */
+        function planItem(item, mode, section) {
+            var ext = extOf(item.name);
+            var base = stripExt(item.name) || item.name;
+            var plan = { mode: mode, section: section, ext: ext, base: base, title: base };
+
+            if (mode === 'file') {
+                plan.paths = [cfg.dir + '/' + item.name];
+                return plan;
+            }
+
+            plan.notePath = CONTENT_DIR + '/' + section + '/' + base + '.md';
+            plan.from = isTextExt(ext) ? 'text' : 'attach';
+
+            if (plan.from === 'attach') {
+                plan.filePath = cfg.dir + '/' + item.name;
+                plan.attachName = item.name;
+                plan.attachPath = '/downloads/' + encodeURIComponent(item.name);
+                plan.attachSize = fmtSize(item.file.size);
+                plan.paths = [plan.notePath, plan.filePath];
+            } else {
+                plan.paths = [plan.notePath];
+            }
+            return plan;
+        }
+
+        // 队列里显示的「这个文件会写到哪」
+        function pathLabel(plan) {
+            if (plan.mode === 'file') return '→ ' + plan.paths[0];
+            if (plan.from === 'attach') return '→ ' + plan.notePath + '   +   ' + plan.filePath;
+            return '→ ' + plan.notePath;
+        }
+
         function setStatus(el, text, kind) {
             if (!el) return;
             el.textContent = text || '';
@@ -259,9 +398,22 @@
 
         function renderQueue() {
             elQueue.textContent = '';
+            var mode = currentMode();
+            var section = elSection ? elSection.value : '';
+
             queue.forEach(function (item, index) {
+                item.plan = planItem(item, mode, section);
+
                 var li = document.createElement('li');
                 li.className = 'up-item';
+
+                var main = document.createElement('div');
+                main.className = 'up-item-main';
+
+                // 提示这行会写到仓库的哪里
+                var path = document.createElement('div');
+                path.className = 'up-item-path';
+                path.textContent = pathLabel(item.plan);
 
                 var name = document.createElement('input');
                 name.type = 'text';
@@ -275,6 +427,9 @@
                     var cleaned = cleanName(name.value);
                     item.name = cleaned;
                     name.value = cleaned;
+                    // 名字决定标题和目标路径，改完要把下面那行一起刷新
+                    item.plan = planItem(item, currentMode(), elSection.value);
+                    path.textContent = pathLabel(item.plan);
                 });
 
                 var size = document.createElement('span');
@@ -297,14 +452,28 @@
                     renderQueue();
                 });
 
-                li.appendChild(name);
-                li.appendChild(size);
-                li.appendChild(status);
-                li.appendChild(del);
+                main.appendChild(name);
+                main.appendChild(size);
+                main.appendChild(status);
+                main.appendChild(del);
+                li.appendChild(main);
+                li.appendChild(path);
                 elQueue.appendChild(li);
             });
 
             elActions.hidden = queue.length === 0;
+        }
+
+        // 切换模式：栏目下拉只在「发布成笔记」时出现，队列里的目标路径也要重算
+        function syncMode() {
+            var mode = currentMode();
+            if (elSectionLabel) elSectionLabel.hidden = (mode !== 'note');
+            if (elDropMode) {
+                elDropMode.textContent = mode === 'note'
+                    ? '每个文件各成一篇文章：Markdown / txt 直接当正文，PDF、Office、图片、压缩包会自动配一篇带下载入口的笔记。'
+                    : '文件只放进下载区，不生成文章。';
+            }
+            renderQueue();
         }
 
         function addFiles(files) {
@@ -330,6 +499,42 @@
 
         /* ---------------- 上传 ---------------- */
 
+        /*
+         * 一个队列项要写进仓库的文件清单。
+         * 附件笔记会一次写两个：笔记本体 + 附件本身。
+         * read() 返回 base64，写成函数是为了等前面处理完再读，
+         * 否则一次拖十几个文件会把内容全塞在内存里。
+         */
+        function jobList(item, plan) {
+            if (plan.mode === 'file') {
+                return [{ path: cfg.dir + '/' + item.name, read: function () { return fileToBase64(item.file); } }];
+            }
+            if (plan.from === 'text') {
+                return [{
+                    path: plan.notePath,
+                    read: function () {
+                        return readText(item.file).then(function (raw) {
+                            return utf8ToBase64(ensureFrontMatter(raw, plan.title));
+                        });
+                    }
+                }];
+            }
+            return [
+                {
+                    path: plan.notePath,
+                    read: function () { return Promise.resolve(utf8ToBase64(attachNote(plan))); }
+                },
+                { path: plan.filePath, read: function () { return fileToBase64(item.file); } }
+            ];
+        }
+
+        function commitMessage(items, mode) {
+            if (mode !== 'note') {
+                return items.length === 1 ? 'upload: ' + items[0].name : 'upload: ' + items.length + ' files';
+            }
+            return 'note: ' + (items.length === 1 ? items[0].plan.title : items.length + ' 篇笔记');
+        }
+
         function upload() {
             if (busy) return;
             var items = queue.slice();
@@ -341,6 +546,10 @@
                 return;
             }
 
+            var mode = currentMode();
+            var section = elSection ? elSection.value : '';
+            items.forEach(function (item) { item.plan = planItem(item, mode, section); });
+
             var dup = {};
             for (var i = 0; i < items.length; i++) {
                 if (dup[items[i].name]) {
@@ -350,9 +559,27 @@
                 dup[items[i].name] = true;
             }
 
+            // 一次拖 a.md 和 a.pdf，两个都会写成 content/<栏目>/a.md，先拦住
+            if (mode === 'note') {
+                var seenPath = {};
+                for (var j = 0; j < items.length; j++) {
+                    var p = items[j].plan.notePath;
+                    if (seenPath[p]) {
+                        setStatus(elProgress, '「' + seenPath[p] + '」和「' + items[j].name +
+                            '」会写成同一个文件（' + p + '），改名区分一下。', 'err');
+                        return;
+                    }
+                    seenPath[p] = items[j].name;
+                }
+            }
+
             busy = true;
             elSend.disabled = true;
             elSend.textContent = '上传中…';
+            // 先把上一次的结果收起来：否则这次失败时，下面还挂着上一轮的成功链接，
+            // 看着像传成功了
+            elResultCard.hidden = true;
+            elLinks.textContent = '';
             setStatus(elProgress, '正在读取仓库当前状态…');
 
             var headSha = '';
@@ -365,24 +592,47 @@
                 })
                 .then(function (commit) {
                     baseTree = commit.tree.sha;
+                    if (mode !== 'note') return null;
+                    // 笔记模式下先确认目标路径没被占用：同名会直接覆盖掉已经写好的文章，
+                    // 这个损失不可逆，所以在提交之前就拦住
+                    var wanted = {};
+                    items.forEach(function (item) { wanted[item.plan.notePath] = true; });
+                    return api('/repos/' + cfg.repo + '/git/trees/' + baseTree + '?recursive=1')
+                        .then(function (tree) {
+                            var hit = (tree.tree || [])
+                                .filter(function (node) { return wanted[node.path]; })
+                                .map(function (node) { return node.path; });
+                            if (hit.length) {
+                                throw new Error('这些标题已经写过了，换个名字再传：' + hit.join('、'));
+                            }
+                        });
+                })
+                .then(function () {
                     // 逐个建 blob，串行避免打爆 API
                     return items.reduce(function (chain, item, index) {
                         return chain.then(function (treeItems) {
+                            var plan = item.plan;
                             setStatus(elProgress, '正在处理 ' + (index + 1) + '/' + items.length + '：' + item.name);
                             if (item.statusEl) item.statusEl.textContent = '准备中';
-                            return fileToBase64(item.file).then(function (content) {
-                                return api('/repos/' + cfg.repo + '/git/blobs', {
-                                    method: 'POST',
-                                    body: { content: content, encoding: 'base64' }
+
+                            return jobList(item, plan).reduce(function (jc, job) {
+                                return jc.then(function () {
+                                    return job.read().then(function (content) {
+                                        return api('/repos/' + cfg.repo + '/git/blobs', {
+                                            method: 'POST',
+                                            body: { content: content, encoding: 'base64' }
+                                        });
+                                    }).then(function (blob) {
+                                        treeItems.push({
+                                            path: job.path,
+                                            mode: '100644',
+                                            type: 'blob',
+                                            sha: blob.sha
+                                        });
+                                    });
                                 });
-                            }).then(function (blob) {
+                            }, Promise.resolve()).then(function () {
                                 if (item.statusEl) item.statusEl.textContent = '已就绪';
-                                treeItems.push({
-                                    path: cfg.dir + '/' + item.name,
-                                    mode: '100644',
-                                    type: 'blob',
-                                    sha: blob.sha
-                                });
                                 return treeItems;
                             });
                         });
@@ -399,9 +649,7 @@
                     return api('/repos/' + cfg.repo + '/git/commits', {
                         method: 'POST',
                         body: {
-                            message: items.length === 1
-                                ? 'upload: ' + items[0].name
-                                : 'upload: ' + items.length + ' files',
+                            message: commitMessage(items, mode),
                             tree: tree.sha,
                             parents: [headSha]
                         }
@@ -429,46 +677,78 @@
                 });
         }
 
+        // 一行：标签 + 地址 + 两个复制按钮
+        function linkRow(label, url, mdName) {
+            var row = document.createElement('div');
+            row.className = 'up-link-row';
+
+            var tag = document.createElement('span');
+            tag.className = 'up-link-label';
+            tag.textContent = label;
+
+            var code = document.createElement('code');
+            code.textContent = url;
+
+            var copy = document.createElement('button');
+            copy.type = 'button';
+            copy.className = 'up-btn up-btn-quiet';
+            copy.textContent = '复制链接';
+            copy.addEventListener('click', function () {
+                copyText(url, copy);
+            });
+
+            var copyMd = document.createElement('button');
+            copyMd.type = 'button';
+            copyMd.className = 'up-btn up-btn-quiet';
+            copyMd.textContent = '复制 Markdown';
+            copyMd.addEventListener('click', function () {
+                copyText('[' + mdName + '](' + url + ')', copyMd);
+            });
+
+            row.appendChild(tag);
+            row.appendChild(code);
+            row.appendChild(copy);
+            row.appendChild(copyMd);
+            return row;
+        }
+
         function showResult(items) {
             elLinks.textContent = '';
+            var mode = items.length ? items[0].plan.mode : 'file';
+
+            elResultHint.textContent = mode === 'note'
+                ? 'GitHub 正在重新构建站点，大约 1~2 分钟后文章就上线了（同时进栏目列表、首页、归档和搜索）。'
+                : 'GitHub 正在重新构建站点，大约 1~2 分钟后这些文件就会出现在下载区里。';
+
             items.forEach(function (item) {
+                var plan = item.plan;
                 var li = document.createElement('li');
                 li.className = 'up-link';
 
                 var title = document.createElement('div');
                 title.className = 'up-link-title';
-                title.textContent = item.name;
-
-                var url = cfg.site + '/downloads/' + encodeURIComponent(item.name);
-
-                var row = document.createElement('div');
-                row.className = 'up-link-row';
-
-                var code = document.createElement('code');
-                code.textContent = url;
-
-                var copy = document.createElement('button');
-                copy.type = 'button';
-                copy.className = 'up-btn up-btn-quiet';
-                copy.textContent = '复制链接';
-                copy.addEventListener('click', function () {
-                    copyText(url, copy);
-                });
-
-                var copyMd = document.createElement('button');
-                copyMd.type = 'button';
-                copyMd.className = 'up-btn up-btn-quiet';
-                copyMd.textContent = '复制 Markdown';
-                copyMd.addEventListener('click', function () {
-                    copyText('[' + item.name + '](' + url + ')', copyMd);
-                });
-
-                row.appendChild(code);
-                row.appendChild(copy);
-                row.appendChild(copyMd);
-
+                title.textContent = plan.mode === 'note' ? plan.title : item.name;
                 li.appendChild(title);
-                li.appendChild(row);
+
+                var sub = document.createElement('div');
+                sub.className = 'up-link-sub';
+
+                if (plan.mode === 'note') {
+                    sub.textContent = plan.from === 'attach' ? '文章（正文里带附件的下载入口）' : '文章';
+                    li.appendChild(sub);
+                    li.appendChild(linkRow('文章链接',
+                        cfg.site + '/' + plan.section + '/' + encodeURIComponent(plan.base) + '/',
+                        plan.title));
+                    if (plan.from === 'attach') {
+                        li.appendChild(linkRow('附件链接', cfg.site + plan.attachPath, plan.attachName));
+                    }
+                } else {
+                    sub.textContent = '下载区文件';
+                    li.appendChild(sub);
+                    li.appendChild(linkRow('文件链接',
+                        cfg.site + '/downloads/' + encodeURIComponent(item.name), item.name));
+                }
+
                 elLinks.appendChild(li);
             });
             elResultCard.hidden = false;
@@ -552,6 +832,12 @@
             setStatus(elProgress, '');
         });
 
+        Array.prototype.forEach.call(elModes, function (radio) {
+            radio.addEventListener('change', syncMode);
+        });
+        if (elSection) elSection.addEventListener('change', renderQueue);
+
+        syncMode();
         tryRestore();
     })();
 </script>
