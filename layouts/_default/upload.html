@@ -399,11 +399,20 @@
                     renderQueue();
                 })
                 .catch(function (err) {
+                    var msg = String(err.message || '');
                     var hint = '';
-                    if (err.status === 401) hint = '（令牌无效或已过期）';
-                    else if (err.status === 403) hint = '（令牌权限不够，或者触发了限流）';
-                    else if (err.status === 409 || err.status === 422) hint = '（仓库刚刚有新提交，刷新页面再传一次）';
-                    setStatus(elProgress, '上传失败：' + err.message + hint, 'err');
+                    if (err.status === 401) {
+                        hint = '（令牌无效或已过期，重新生成一个再粘贴）';
+                    } else if (err.status === 404) {
+                        hint = '（找不到仓库 ' + cfg.repo + '：令牌的 Repository access 里没勾上它）';
+                    } else if (err.status === 403) {
+                        hint = /rate limit/i.test(msg)
+                            ? '（触发了 GitHub 限流，等几分钟再传）'
+                            : '（令牌没有写权限：去 GitHub 令牌设置把 Contents 改成 Read and write，保存后立刻生效，不用重新粘贴令牌）';
+                    } else if (err.status === 409 || err.status === 422) {
+                        hint = '（仓库刚刚有新提交，刷新页面再传一次）';
+                    }
+                    setStatus(elProgress, '上传失败：' + msg + hint, 'err');
                 })
                 .then(function () {
                     busy = false;
